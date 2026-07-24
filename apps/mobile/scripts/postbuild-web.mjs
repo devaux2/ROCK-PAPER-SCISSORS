@@ -6,10 +6,13 @@ import { fileURLToPath } from 'node:url';
 const indexPath = fileURLToPath(new URL('../dist/index.html', import.meta.url));
 let html = readFileSync(indexPath, 'utf-8');
 
+// Subpath hosts (GitHub Pages) need every absolute URL prefixed.
+const base = process.env.WEB_BASE_URL ?? '';
+
 const inject = `
     <meta name="theme-color" content="#0D1117" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/pwa-icon.png" />
+    <link rel="manifest" href="${base}/manifest.json" />
+    <link rel="apple-touch-icon" href="${base}/pwa-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -30,4 +33,15 @@ if (!html.includes('rel="manifest"')) {
 }
 
 writeFileSync(indexPath, html);
-console.log('postbuild-web: PWA tags injected into dist/index.html');
+// SPA fallback for static hosts (GitHub Pages serves 404.html for unknown
+// paths); the game server does its own fallback and ignores this file.
+writeFileSync(indexPath.replace(/index\.html$/, '404.html'), html);
+
+if (base) {
+  const manifestPath = indexPath.replace(/index\.html$/, 'manifest.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+  manifest.start_url = `${base}/`;
+  manifest.icons = manifest.icons.map((icon) => ({ ...icon, src: `${base}${icon.src}` }));
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+}
+console.log(`postbuild-web: PWA tags injected (base "${base || '/'}"), 404.html written`);
