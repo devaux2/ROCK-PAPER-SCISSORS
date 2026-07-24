@@ -1,0 +1,14 @@
+{
+  "name": "rps-throwdown",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "server": "npm -w @rps/server run dev",
+    "test": "npm -w @rps/shared test && npm -w @rps/server test && npm -w @rps/mobile test",
+    "typecheck": "npm -w @rps/shared run typecheck && npm -w @rps/server run typecheck && npm -w @rps/mobile run typecheck"
+  }
+}

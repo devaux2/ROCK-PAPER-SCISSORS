@@ -1,0 +1,61 @@
+import type { TransactionType } from './economy';
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  bio: string;
+  /** Built-in avatar id like 'avatar_03', or 'b64:<base64 png>' for a custom photo. */
+  avatar: string;
+  coins: number;
+  elo: number;
+  wins: number;
+  losses: number;
+  /** wins / (wins + losses), 0 when unplayed. Excludes bot matches. */
+  winRate: number;
+  createdAt: string;
+}
+
+/** What other players see (no coin balance). */
+export type PublicProfile = Omit<UserProfile, 'coins'>;
+
+export interface AuthResponse {
+  token: string;
+  user: UserProfile;
+}
+
+export type FriendshipStatus = 'pending' | 'accepted';
+
+export interface FriendEntry {
+  user: PublicProfile;
+  status: FriendshipStatus;
+  /** True when the other user sent the request and it awaits our accept. */
+  incoming: boolean;
+  online: boolean;
+}
+
+export interface LeaderboardRow {
+  rank: number;
+  user: PublicProfile;
+  ratingGained: number;
+  currentElo: number;
+}
+
+export type LeaderboardWindow = 'weekly' | 'monthly';
+
+export interface TransactionRow {
+  id: number;
+  amount: number;
+  type: TransactionType;
+  matchId: string | null;
+  balanceAfter: number;
+  createdAt: string;
+}
+
+export interface TopupResponse {
+  granted: number;
+  coins: number;
+}
+
+export interface ApiError {
+  error: string;
+}

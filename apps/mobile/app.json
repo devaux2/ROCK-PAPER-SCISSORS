@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Throwdown",
+    "slug": "rps-throwdown",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "rpsthrowdown",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D1117"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rps.throwdown"
+    },
+    "android": {
+      "package": "com.rps.throwdown",
+      "adaptiveIcon": {
+        "backgroundColor": "#0D1117",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}

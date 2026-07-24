@@ -1,0 +1,76 @@
+import React, { useEffect } from 'react';
+import { Text } from 'react-native';
+import { Redirect, Tabs, useRouter } from 'expo-router';
+import { useAuthStore } from '../../src/stores/authStore';
+import { useMatchStore } from '../../src/stores/matchStore';
+import { theme } from '../../src/theme';
+import { ChallengeToast } from '../../src/components/ChallengeToast';
+
+function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
+  return <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>{icon}</Text>;
+}
+
+export default function MainLayout() {
+  const token = useAuthStore((s) => s.token);
+  const matchId = useMatchStore((s) => s.matchId);
+  const phase = useMatchStore((s) => s.phase);
+  const router = useRouter();
+
+  // A match can start while anywhere in the app (accepted challenge,
+  // rematch) — jump to the game screen.
+  useEffect(() => {
+    if (matchId && (phase === 'choosing' || phase === 'revealing')) {
+      router.push(`/match/${matchId}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId]);
+
+  if (!token) return <Redirect href="/(auth)/login" />;
+
+  return (
+    <>
+      <Tabs
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.bg },
+          headerTintColor: theme.text,
+          headerTitleStyle: { fontWeight: '800' },
+          tabBarStyle: { backgroundColor: theme.panel, borderTopColor: theme.panelBorder },
+          tabBarActiveTintColor: theme.accent,
+          tabBarInactiveTintColor: theme.textDim,
+          sceneStyle: { backgroundColor: theme.bg },
+        }}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Play',
+            headerShown: false,
+            tabBarIcon: ({ focused }) => <TabIcon icon="⚔️" focused={focused} />,
+          }}
+        />
+        <Tabs.Screen
+          name="friends"
+          options={{
+            title: 'Friends',
+            tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} />,
+          }}
+        />
+        <Tabs.Screen
+          name="leaderboard"
+          options={{
+            title: 'Leaderboard',
+            tabBarIcon: ({ focused }) => <TabIcon icon="🏆" focused={focused} />,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ focused }) => <TabIcon icon="🧑" focused={focused} />,
+          }}
+        />
+      </Tabs>
+      <ChallengeToast />
+    </>
+  );
+}
