@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MOVES, ROUNDS_TO_WIN, type Move } from '@rps/shared';
@@ -9,6 +9,7 @@ import { Avatar } from '../../src/components/Avatar';
 import { Countdown } from '../../src/components/Countdown';
 import { EmoteWheel, EmoteBubble } from '../../src/components/EmoteWheel';
 import { Button } from '../../src/components/ui';
+import { playSound } from '../../src/sound';
 
 function Pips({ score, accent }: { score: number; accent: string }) {
   return (
@@ -51,8 +52,17 @@ export default function MatchScreen() {
 
   const onRevealDone = useCallback(() => setRevealDone(true), []);
 
+  useEffect(() => {
+    if (phase === 'revealing') playSound('reveal');
+  }, [phase]);
+
+  useEffect(() => {
+    if (endResult) playSound(endResult.youWon ? 'win' : 'lose');
+  }, [endResult]);
+
   async function choose(move: Move) {
     if (!matchId || myMove) return;
+    playSound('click');
     setMyMove(move);
     setRevealDone(false);
     await game.submitMove(matchId, move);

@@ -56,6 +56,23 @@ export interface TopupResponse {
   coins: number;
 }
 
+export interface MatchHistoryRow {
+  matchId: string;
+  mode: 'ranked' | 'casual' | 'bot';
+  wager: number;
+  /** null for bot matches. */
+  opponent: PublicProfile | null;
+  won: boolean;
+  /** Double-AFK abort — no winner, wagers refunded. */
+  aborted: boolean;
+  myScore: number;
+  oppScore: number;
+  endReason: 'score' | 'forfeit' | 'disconnect';
+  eloDelta: number;
+  coinsDelta: number;
+  endedAt: string;
+}
+
 export interface ApiError {
   error: string;
 }

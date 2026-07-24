@@ -11,10 +11,13 @@ A cross-platform (iOS + Android) mobile game where players face off in **best-of
 - **Profiles** — win rate, bio, avatar (12 built-in avatars or a photo from your library).
 - **Friends** — requests by username, online presence, direct challenges with optional wagers, post-match rematch offers.
 - **Emote wheel** — radial 8-emote taunt wheel in-match, rate-limited server-side.
-- **Two visual skins, one mechanic** — the game logic only knows moves `A/B/C` (`A>C>B>A`). Skins are pure presentation:
+- **Three visual skins, one mechanic** — the game logic only knows moves `A/B/C` (`A>C>B>A`). Skins are pure presentation:
   - **Rock Paper Scissors** — classic stacked layout, synced fist-shake reveal.
   - **Kick Block Punch** — side-view arena, 3-2-1-FIGHT countdown, lunge attacks, hit-flash + screen shake.
-  - Adding a skin = one folder + one registry entry (`apps/mobile/src/skins/`). No logic changes.
+  - **Spell Duel** — wizard duel; spell orbs channel, fly and collide, the winning element flares.
+  - Adding a skin = one folder + one registry entry (`apps/mobile/src/skins/`). No logic changes — Spell Duel was added exactly this way to prove it.
+- **Match history** — recent matches with opponent, score, coin and Elo deltas (Profile → Match history).
+- **Sound effects** — procedurally generated click/reveal/win/lose cues, mutable in Settings.
 - **Practice vs bot** — server-side bot reuses the exact same match engine.
 
 ## Repository layout
@@ -61,6 +64,19 @@ npm run typecheck   # tsc --noEmit in all workspaces
 - `apps/mobile` — store lifecycle tests and skin-registry invariants.
 
 Visual smoke: `npx expo export --platform web` builds the full app graph; the exported web build has been driven with a headless browser (signup → menu → bot matches on both skins → K.O. screen). Reanimated animations target native devices — verify feel on a phone via Expo Go.
+
+## Building for app stores (EAS)
+
+`apps/mobile/eas.json` defines `development`, `preview` and `production` profiles. With an [Expo account](https://expo.dev) and the servers deployed somewhere reachable:
+
+```bash
+cd apps/mobile
+npx eas-cli login
+# set EXPO_PUBLIC_API_URL in eas.json to your deployed server URL first
+npx eas-cli build --profile preview --platform all
+```
+
+`ios.bundleIdentifier` / `android.package` are already set in `app.json` (`com.rps.throwdown`). The server is a single Node process with a SQLite file — it runs anywhere Node 20+ does (`npm -w @rps/server run start`, set `PORT`, `JWT_SECRET` and `DB_PATH` in production).
 
 ## Notes
 

@@ -43,6 +43,7 @@ export default function Profile() {
       </Card>
 
       <Button title="Edit profile" onPress={() => router.push('/edit-profile')} />
+      <Button title="Match history" variant="secondary" onPress={() => router.push('/history')} />
       <Button title="Settings & skins" variant="secondary" onPress={() => router.push('/settings')} />
       <Button title="Log out" variant="ghost" onPress={() => void logout()} />
     </ScrollView>

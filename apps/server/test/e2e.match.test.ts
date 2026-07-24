@@ -207,6 +207,20 @@ describe('e2e: real socket clients play ranked matches', () => {
     expect(benAfter.coins).toBe(500);
     // Ben was behind, so winning back pays slightly more than 16.
     expect(benAfter.elo).toBeGreaterThan(984);
+
+    // Match history: newest first, correct outcome/deltas per player.
+    const annHistory = await fetch(`${base}/matches/history`, {
+      headers: { authorization: `Bearer ${tokens.ann}` },
+    }).then((r) => r.json());
+    expect(annHistory).toHaveLength(2);
+    expect(annHistory[0].won).toBe(false); // rematch, ben won
+    expect(annHistory[0].coinsDelta).toBe(-50);
+    expect(annHistory[0].opponent.username).toBe('ben');
+    expect(annHistory[1].won).toBe(true); // first match
+    expect(annHistory[1].coinsDelta).toBe(50);
+    expect(annHistory[1].eloDelta).toBe(16);
+    expect(annHistory[1].mode).toBe('ranked');
+    expect(annHistory[1].myScore).toBe(2);
   }, 60_000);
 
   it('refunds escrow on queue leave and rejects invalid tiers', async () => {

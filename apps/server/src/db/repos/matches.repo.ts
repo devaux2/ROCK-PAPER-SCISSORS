@@ -1,5 +1,6 @@
 import type { DB } from '../db';
-import type { MatchMode, MatchEndReason, Move } from '@rps/shared';
+import type { MatchMode, MatchEndReason, Move, MatchHistoryRow } from '@rps/shared';
+import { toPublicProfile, type UserRow } from './users.repo';
 
 export interface CompletedRound {
   roundNo: number;
@@ -43,6 +44,50 @@ export class MatchesRepo {
   recordResult(winnerId: number, loserId: number): void {
     this.db.prepare('UPDATE users SET wins = wins + 1 WHERE id = ?').run(winnerId);
     this.db.prepare('UPDATE users SET losses = losses + 1 WHERE id = ?').run(loserId);
+  }
+
+  /** Completed matches for a user, newest first, with opponent + own Elo delta. */
+  historyFor(userId: number, limit = 30): MatchHistoryRow[] {
+    const rows = this.db
+      .prepare(
+        `SELECT m.*, u.*, m.id AS mid, m.created_at AS mcreated,
+                (SELECT e.delta FROM elo_history e WHERE e.match_id = m.id AND e.user_id = ?) AS elo_delta
+         FROM matches m
+         LEFT JOIN users u ON u.id = CASE WHEN m.p1_id = ? THEN m.p2_id ELSE m.p1_id END
+         WHERE m.status = 'complete' AND (m.p1_id = ? OR m.p2_id = ?)
+         ORDER BY m.ended_at DESC, m.rowid DESC
+         LIMIT ?`
+      )
+      .all(userId, userId, userId, userId, limit) as Array<Record<string, unknown>>;
+    return rows.map((r) => {
+      const isP1 = (r.p1_id as number) === userId;
+      const myScore = isP1 ? (r.p1_score as number) : (r.p2_score as number);
+      const oppScore = isP1 ? (r.p2_score as number) : (r.p1_score as number);
+      const mode = r.mode as MatchMode;
+      const wager = r.wager as number;
+      const winnerId = r.winner_id as number | null;
+      const won = winnerId === userId;
+      const opponent =
+        mode === 'bot' || r.id == null
+          ? null
+          : toPublicProfile(r as unknown as UserRow);
+      return {
+        matchId: r.mid as string,
+        mode,
+        wager,
+        opponent,
+        won,
+        // In bot matches a null winner means the bot won; in PvP it means
+        // the match was aborted (double-AFK) and wagers were refunded.
+        aborted: winnerId === null && mode !== 'bot',
+        myScore,
+        oppScore,
+        endReason: r.end_reason as MatchEndReason,
+        eloDelta: (r.elo_delta as number | null) ?? 0,
+        coinsDelta: mode === 'ranked' ? (won ? wager : winnerId === null ? 0 : -wager) : 0,
+        endedAt: r.ended_at as string,
+      };
+    });
   }
 
   updateElo(userId: number, matchId: string, delta: number, ratingAfter: number): void {

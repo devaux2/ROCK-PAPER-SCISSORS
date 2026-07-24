@@ -7,6 +7,7 @@ import { profileRoutes } from './http/profile.routes';
 import { friendsRoutes } from './http/friends.routes';
 import { leaderboardRoutes } from './http/leaderboard.routes';
 import { economyRoutes } from './http/economy.routes';
+import { matchesRoutes } from './http/matches.routes';
 import { createSocketServer, type RealtimeServer } from './realtime/socketServer';
 
 export interface AppServer {
@@ -44,6 +45,7 @@ export function createServer(db: DB): AppServer {
   app.use('/friends', friendsRoutes(ctx, (id) => realtime.presence.isOnline(id)));
   app.use('/leaderboards', leaderboardRoutes(ctx));
   app.use('/economy', economyRoutes(ctx));
+  app.use('/matches', matchesRoutes(ctx));
 
   return {
     ctx,

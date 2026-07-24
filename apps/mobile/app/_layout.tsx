@@ -71,6 +71,7 @@ export default function RootLayout() {
         <Stack.Screen name="edit-profile" options={{ title: 'Edit profile', presentation: 'modal' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
         <Stack.Screen name="user/[id]" options={{ title: 'Player' }} />
+        <Stack.Screen name="history" options={{ title: 'Match history' }} />
       </Stack>
     </GestureHandlerRootView>
   );

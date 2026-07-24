@@ -1,6 +1,7 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSettingsStore } from '../src/stores/settingsStore';
+import { playSound } from '../src/sound';
 import { SKINS } from '../src/skins';
 import { MOVES } from '@rps/shared';
 import { theme } from '../src/theme';
@@ -8,9 +9,26 @@ import { theme } from '../src/theme';
 export default function Settings() {
   const activeSkinId = useSettingsStore((s) => s.activeSkinId);
   const setSkin = useSettingsStore((s) => s.setSkin);
+  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
+  const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: 20 }}>
+      <View style={styles.soundRow}>
+        <View>
+          <Text style={styles.soundLabel}>Sound effects</Text>
+          <Text style={styles.hint}>Clicks, reveals, wins and losses.</Text>
+        </View>
+        <Switch
+          value={soundEnabled}
+          onValueChange={(v) => {
+            setSoundEnabled(v);
+            if (v) playSound('win');
+          }}
+          trackColor={{ true: theme.accent }}
+        />
+      </View>
+
       <Text style={styles.label}>Game skin</Text>
       <Text style={styles.hint}>
         Same game, different flavor. Every skin plays identically — only the look, layout and
@@ -46,6 +64,16 @@ export default function Settings() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
+  soundRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.panel,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  soundLabel: { color: theme.text, fontWeight: '800', fontSize: 16 },
   label: {
     color: theme.textDim,
     fontWeight: '800',

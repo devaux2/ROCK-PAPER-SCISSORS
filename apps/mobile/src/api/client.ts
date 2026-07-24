@@ -7,6 +7,7 @@ import type {
   LeaderboardWindow,
   TransactionRow,
   TopupResponse,
+  MatchHistoryRow,
 } from '@rps/shared';
 
 export class ApiError extends Error {
@@ -64,4 +65,5 @@ export const api = {
   leaderboard: (window: LeaderboardWindow) => request<LeaderboardRow[]>(`/leaderboards?window=${window}`),
   dailyTopup: () => request<TopupResponse>('/economy/daily-topup', { method: 'POST' }),
   history: () => request<TransactionRow[]>('/economy/history'),
+  matchHistory: () => request<MatchHistoryRow[]>('/matches/history'),
 };
