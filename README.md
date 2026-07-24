@@ -30,6 +30,22 @@ apps/server/       # @rps/server — Express + Socket.io + better-sqlite3; also 
 apps/mobile/       # @rps/mobile — Expo app (Expo Router, zustand, Reanimated) -> web via react-native-web
 ```
 
+## Easiest: the no-hosting play kit
+
+Free hosting with websockets has mostly disappeared behind credit-card walls
+(2026 status: Render/Fly require cards, HF paywalled Docker Spaces, Koyeb was
+acquired, Zeabur dropped its free shared cluster). This repo therefore ships a
+zero-account launcher:
+
+1. Install [Node.js](https://nodejs.org) (LTS) — one-off.
+2. Download this repo (green **Code** button → **Download ZIP**) and unzip it.
+3. Double-click **`play.bat`** (Windows) or **`play.command`** (macOS).
+
+It starts the game on your machine and opens a free Cloudflare quick tunnel
+(no account) with a public `https://….trycloudflare.com` link anyone can join.
+The link changes each session; your machine must stay on while people play.
+If the tunnel can't start you still get local + Wi-Fi URLs.
+
 ## Run it (web)
 
 Requires Node 20+.
