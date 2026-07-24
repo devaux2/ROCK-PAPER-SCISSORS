@@ -16,6 +16,10 @@ RUN npm run build:web
 
 ENV NODE_ENV=production
 ENV PORT=3001
-# SQLite lives here; mount a volume at /app/apps/server/data to persist it.
+# Some hosts (e.g. Hugging Face Spaces) run containers as a non-root user:
+# make the SQLite dir writable and keep HOME somewhere writable too.
+RUN mkdir -p apps/server/data && chmod -R 777 apps/server/data
+ENV HOME=/tmp
+# SQLite lives in apps/server/data; mount a volume there to persist it.
 EXPOSE 3001
-CMD ["npm", "start"]
+CMD ["node", "node_modules/tsx/dist/cli.mjs", "apps/server/src/index.ts"]

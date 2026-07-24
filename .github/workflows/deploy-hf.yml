@@ -1,0 +1,50 @@
+name: Deploy to Hugging Face Space
+
+# Pushes the whole game (Docker: server + web client at one URL) to a
+# Hugging Face Space — free hosting, no payment details.
+#
+# One-time setup in this GitHub repo (Settings -> Secrets and variables
+# -> Actions):
+#   Secret   HF_TOKEN  = a Hugging Face access token with Write access
+#   Variable HF_SPACE  = the Space id, e.g. yourname/throwdown
+#
+# Runs on every push to main (skipped silently until HF_SPACE is set),
+# or manually from the Actions tab.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: ${{ vars.HF_SPACE != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add Space metadata and push
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --detach
+          # Hugging Face reads Space config from README.md YAML frontmatter.
+          printf '%s\n' \
+            '---' \
+            'title: Throwdown' \
+            'emoji: ✊' \
+            'colorFrom: yellow' \
+            'colorTo: red' \
+            'sdk: docker' \
+            'app_port: 3001' \
+            'pinned: false' \
+            '---' > README.hf.md
+          cat README.md >> README.hf.md
+          mv README.hf.md README.md
+          git add README.md
+          git commit -m "Add Hugging Face Space metadata"
+          git push --force "https://hf:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" HEAD:main
