@@ -15,8 +15,6 @@ import { theme } from '../src/theme';
 
 export default function Matchmaking() {
   const router = useRouter();
-  const phase = useMatchStore((s) => s.phase);
-  const matchId = useMatchStore((s) => s.matchId);
   const queueMode = useMatchStore((s) => s.queueMode);
   const queueWager = useMatchStore((s) => s.queueWager);
   const stopQueueing = useMatchStore((s) => s.stopQueueing);
@@ -33,12 +31,8 @@ export default function Matchmaking() {
     return () => clearInterval(interval);
   }, []);
 
-  // Server matched us — go play.
-  useEffect(() => {
-    if (matchId && phase !== 'queueing' && phase !== 'idle') {
-      router.replace(`/match/${matchId}`);
-    }
-  }, [matchId, phase, router]);
+  // Navigation to the match screen is owned by the (main) layout — the
+  // one place that reacts to match:start no matter where the user is.
 
   function cancel() {
     game.leaveQueue();

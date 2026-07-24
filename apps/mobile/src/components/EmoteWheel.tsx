@@ -10,12 +10,18 @@ import Animated, {
 import { EMOTES, type EmoteId } from '@rps/shared';
 import { theme } from '../theme';
 
-const WHEEL_RADIUS = 92;
-const ITEM = 48;
+const ITEM = 44;
+/** Two arcs so 8 emotes never overlap (44px targets stay tappable). */
+const RINGS = [
+  { radius: 76, count: 3 },
+  { radius: 138, count: 5 },
+];
+const SWEEP_START = Math.PI * 0.97; // just past straight-left
+const SWEEP_END = Math.PI * 0.53; // just short of straight-up
 
 /**
- * Radial emote wheel: tap the corner face button to fan 8 emotes across the
- * upper-left quadrant; tapping one sends it and collapses the wheel.
+ * Radial emote wheel: tap the corner face button to fan 8 emotes in two
+ * arcs across the upper-left quadrant; tapping one sends it and collapses.
  */
 export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
   const [open, setOpen] = useState(false);
@@ -27,22 +33,44 @@ export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
       : withTiming(0, { duration: 140 });
   }, [open, progress]);
 
+  let index = 0;
+  const items = RINGS.flatMap((ring) => {
+    const ringEmotes = EMOTES.slice(index, index + ring.count);
+    const startIdx = index;
+    index += ring.count;
+    return ringEmotes.map((emote, i) => ({
+      emote,
+      key: EMOTES[startIdx + i]!.id,
+      radius: ring.radius,
+      angle:
+        ring.count === 1
+          ? (SWEEP_START + SWEEP_END) / 2
+          : SWEEP_START + ((SWEEP_END - SWEEP_START) * i) / (ring.count - 1),
+    }));
+  });
+
   return (
     <View pointerEvents="box-none" style={styles.root}>
-      {EMOTES.map((emote, i) => (
+      {items.map(({ emote, key, radius, angle }) => (
         <WheelItem
-          key={emote.id}
+          key={key}
           emoji={emote.emoji}
-          // Sweep from straight-left (π) to straight-up (π/2).
-          angle={Math.PI - (i / (EMOTES.length - 1)) * (Math.PI / 2)}
+          label={emote.label}
+          angle={angle}
+          radius={radius}
           progress={progress}
+          disabled={!open}
           onPress={() => {
             onEmote(emote.id);
             setOpen(false);
           }}
         />
       ))}
-      <Pressable style={styles.trigger} onPress={() => setOpen((o) => !o)}>
+      <Pressable
+        accessibilityLabel="Emote wheel"
+        style={styles.trigger}
+        onPress={() => setOpen((o) => !o)}
+      >
         <Text style={styles.triggerText}>{open ? '✕' : '😏'}</Text>
       </Pressable>
     </View>
@@ -51,17 +79,23 @@ export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
 
 function WheelItem({
   emoji,
+  label,
   angle,
+  radius,
   progress,
+  disabled,
   onPress,
 }: {
   emoji: string;
+  label: string;
   angle: number;
+  radius: number;
   progress: SharedValue<number>;
+  disabled: boolean;
   onPress: () => void;
 }) {
   const style = useAnimatedStyle(() => {
-    const r = progress.value * WHEEL_RADIUS;
+    const r = progress.value * radius;
     return {
       opacity: progress.value,
       transform: [
@@ -72,8 +106,11 @@ function WheelItem({
     };
   });
   return (
-    <Animated.View style={[styles.item, style]}>
-      <Pressable onPress={onPress} style={styles.itemButton}>
+    <Animated.View
+      style={[styles.item, style]}
+      pointerEvents={disabled ? 'none' : 'auto'}
+    >
+      <Pressable accessibilityLabel={`Emote: ${label}`} onPress={onPress} style={styles.itemButton}>
         <Text style={styles.itemEmoji}>{emoji}</Text>
       </Pressable>
     </Animated.View>
@@ -132,7 +169,7 @@ const styles = StyleSheet.create({
   itemEmoji: { fontSize: 24 },
   bubble: {
     position: 'absolute',
-    top: -8,
+    top: 6,
     alignSelf: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,

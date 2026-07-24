@@ -1,4 +1,6 @@
 import express from 'express';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { createServer as createHttpServer, type Server as HttpServer } from 'node:http';
 import type { DB } from './db/db';
 import { createContext, type AppContext } from './context';
@@ -18,7 +20,12 @@ export interface AppServer {
   close(): Promise<void>;
 }
 
-export function createServer(db: DB): AppServer {
+export interface ServerOptions {
+  /** Directory of the exported web app to serve; disabled if missing/empty. */
+  webDist?: string;
+}
+
+export function createServer(db: DB, options: ServerOptions = {}): AppServer {
   const ctx = createContext(db);
   const app = express();
   app.use(express.json({ limit: '100kb' }));
@@ -46,6 +53,21 @@ export function createServer(db: DB): AppServer {
   app.use('/leaderboards', leaderboardRoutes(ctx));
   app.use('/economy', economyRoutes(ctx));
   app.use('/matches', matchesRoutes(ctx));
+
+  // Web port: serve the exported Expo web app from the same origin, so one
+  // Node process is the whole deployment (API + realtime + client).
+  const webDist = options.webDist ?? '';
+  if (webDist && existsSync(join(webDist, 'index.html'))) {
+    app.use(express.static(webDist, { index: 'index.html', maxAge: '1h' }));
+    // SPA fallback for client-side routes (e.g. /match/abc refreshed).
+    app.get('*', (req, res, next) => {
+      if (req.method !== 'GET' || req.path.includes('.')) {
+        next();
+        return;
+      }
+      res.sendFile(join(webDist, 'index.html'));
+    });
+  }
 
   return {
     ctx,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -54,9 +54,11 @@ export default function RootLayout() {
   if (!started || !hydrated) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.gestureRoot}>
       <StatusBar style="light" />
-      <Stack
+      {/* On web the game stays a phone-shaped column even on wide screens. */}
+      <View style={styles.shell}>
+        <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.bg },
           headerTintColor: theme.text,
@@ -70,9 +72,21 @@ export default function RootLayout() {
         <Stack.Screen name="match/[id]" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="edit-profile" options={{ title: 'Edit profile', presentation: 'modal' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
-        <Stack.Screen name="user/[id]" options={{ title: 'Player' }} />
-        <Stack.Screen name="history" options={{ title: 'Match history' }} />
-      </Stack>
+          <Stack.Screen name="user/[id]" options={{ title: 'Player' }} />
+          <Stack.Screen name="history" options={{ title: 'Match history' }} />
+        </Stack>
+      </View>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  gestureRoot: { flex: 1, backgroundColor: '#000' },
+  shell: {
+    flex: 1,
+    backgroundColor: theme.bg,
+    ...(Platform.OS === 'web'
+      ? { width: '100%', maxWidth: 520, alignSelf: 'center' as const }
+      : {}),
+  },
+});

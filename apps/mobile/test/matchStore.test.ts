@@ -99,6 +99,15 @@ describe('matchStore', () => {
     expect(s().scores).toEqual({ p1: 0, p2: 0 });
   });
 
+  it('startQueueing cannot clobber a match that already started (instant-pair race)', () => {
+    const s = useMatchStore.getState;
+    // Server paired instantly: match:start lands before the join ack returns.
+    s().onMatchStart(startPayload);
+    s().startQueueing('ranked', 50);
+    expect(s().phase).toBe('choosing');
+    expect(s().matchId).toBe('m1');
+  });
+
   it('emote sequence increments so repeats re-trigger', () => {
     const s = useMatchStore.getState;
     s().onEmote('laugh');

@@ -72,6 +72,9 @@ export const useMatchStore = create<MatchState>((set, get) => ({
   ...initial,
 
   startQueueing(mode, wager) {
+    // Never clobber a match that already started (instant pairing race).
+    const phase = get().phase;
+    if (phase === 'choosing' || phase === 'revealing') return;
     set({ ...initial, phase: 'queueing', queueMode: mode, queueWager: wager });
   },
 

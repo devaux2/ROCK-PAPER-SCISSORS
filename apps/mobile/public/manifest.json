@@ -1,0 +1,18 @@
+{
+  "name": "Throwdown — Rock Paper Scissors",
+  "short_name": "Throwdown",
+  "description": "Best-of-3 rock paper scissors with coin wagers, friends and leaderboards.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D1117",
+  "theme_color": "#0D1117",
+  "icons": [
+    {
+      "src": "/pwa-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

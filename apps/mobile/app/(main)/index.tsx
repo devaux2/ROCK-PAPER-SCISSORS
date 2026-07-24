@@ -24,27 +24,34 @@ export default function Home() {
     }, [refreshMe])
   );
 
+  // Mark queueing BEFORE emitting: the server can pair instantly, so
+  // match:start may arrive before the join ack — the store must not be
+  // reset after that.
   async function queueRanked(tier: WagerTier) {
     setWagerSheet(false);
     setError(null);
+    startQueueing('ranked', tier);
     const res = await game.joinQueue('ranked', tier);
     if (!res.ok) {
+      useMatchStore.getState().stopQueueing();
       setError(res.error ?? 'Could not join queue');
       return;
     }
-    startQueueing('ranked', tier);
-    router.push('/matchmaking');
+    // Instant pairing can beat the ack: if the match already started, the
+    // (main) layout has navigated there — don't stack /matchmaking on top.
+    if (useMatchStore.getState().phase === 'queueing') router.push('/matchmaking');
   }
 
   async function queueCasual() {
     setError(null);
+    startQueueing('casual', 0);
     const res = await game.joinQueue('casual');
     if (!res.ok) {
+      useMatchStore.getState().stopQueueing();
       setError(res.error ?? 'Could not join queue');
       return;
     }
-    startQueueing('casual', 0);
-    router.push('/matchmaking');
+    if (useMatchStore.getState().phase === 'queueing') router.push('/matchmaking');
   }
 
   async function playBot() {
