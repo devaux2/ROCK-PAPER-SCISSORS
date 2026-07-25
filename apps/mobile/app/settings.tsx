@@ -29,7 +29,8 @@ export default function Settings() {
               setSoundEnabled(v);
               if (v) playSound('win');
             }}
-            trackColor={{ true: theme.accent }}
+            trackColor={{ true: theme.accent, false: theme.panelBorder }}
+            thumbColor={theme.text}
           />
         </Card>
       </Animated.View>

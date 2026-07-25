@@ -51,7 +51,7 @@ export default function Profile() {
             )}
           </StatCard>
           <StatCard label="Record">
-            <DisplayText size={30}>{`${user.wins}W · ${user.losses}L`}</DisplayText>
+            <DisplayText size={30}>{`${user.wins} W · ${user.losses} L`}</DisplayText>
           </StatCard>
           <StatCard label="Elo">
             <StatNumber value={user.elo} size={30} color={theme.blue} />

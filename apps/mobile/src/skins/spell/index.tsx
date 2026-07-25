@@ -215,7 +215,7 @@ function MatchEndScene({ won, reason }: MatchEndSceneProps) {
         <DisplayText
           size={36}
           color={won ? spellMeta.theme.accent : spellMeta.theme.textDim}
-          style={[styles.endTitle, won ? theme.glow(spellMeta.theme.accent, 18) : null]}
+          style={[styles.endTitle, won ? theme.textGlow(spellMeta.theme.accent, 18) : null]}
         >
           {won ? 'ARCANE VICTORY' : 'SPELL BROKEN'}
         </DisplayText>

@@ -86,7 +86,7 @@ export default function Home() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <Animated.View entering={FadeInDown.springify()} style={styles.header}>
-        <DisplayText size={44} color={theme.accent} style={[styles.logo, theme.glow(theme.accent, 20)]}>
+        <DisplayText size={44} color={theme.accent} style={[styles.logo, theme.textGlow(theme.accent, 20)]}>
           THROWDOWN
         </DisplayText>
         <View style={styles.statRow}>
@@ -185,7 +185,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
-  content: { padding: 20, paddingTop: 64 },
+  content: { padding: 20, paddingTop: 64, paddingBottom: 110 },
   header: { alignItems: 'center' },
   logo: { textAlign: 'center' },
   statRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginVertical: 14 },

@@ -166,7 +166,7 @@ function MatchEndScene({ won, reason }: MatchEndSceneProps) {
       <DisplayText
         size={46}
         color={won ? theme.green : theme.danger}
-        style={[styles.endTitle, theme.glow(won ? theme.green : theme.danger, 20)]}
+        style={[styles.endTitle, theme.textGlow(won ? theme.green : theme.danger, 20)]}
       >
         {won ? 'VICTORY' : 'DEFEAT'}
       </DisplayText>

@@ -171,17 +171,19 @@ export function Button({
   );
 
   if (variant === 'primary') {
+    // Glow lives on the gradient itself so the halo follows the rounded
+    // shape — a glowing wrapper renders as a dark slab on web.
     return (
-      <PressableScale
-        onPress={onPress}
-        disabled={dim}
-        style={[styles.buttonShadow, dim && { opacity: 0.55 }]}
-      >
+      <PressableScale onPress={onPress} disabled={dim} style={dim && { opacity: 0.55 }}>
         <LinearGradient
           colors={theme.gradients.cta}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.button, size === 'lg' && styles.buttonLg]}
+          style={[
+            styles.button,
+            size === 'lg' && styles.buttonLg,
+            !dim && theme.glow('#FFB020', 14),
+          ]}
         >
           {inner}
         </LinearGradient>
@@ -271,7 +273,6 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   buttonLg: { minHeight: 60, borderRadius: theme.radius.lg },
-  buttonShadow: { ...theme.glow('#FFB020', 14), marginVertical: 0 },
   buttonLabel: { textAlign: 'center' },
   buttonSecondary: {
     backgroundColor: theme.panel,

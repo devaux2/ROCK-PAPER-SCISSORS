@@ -65,7 +65,7 @@ export default function RootLayout() {
             headerStyle: { backgroundColor: theme.bg },
             headerTintColor: theme.text,
             contentStyle: { backgroundColor: theme.bg },
-            headerTitleStyle: { fontWeight: '800' },
+            headerTitleStyle: { fontFamily: theme.fonts.display, fontSize: 22 },
             animation: 'slide_from_right',
             animationDuration: 260,
           }}
@@ -74,10 +74,10 @@ export default function RootLayout() {
         <Stack.Screen name="(main)" options={{ headerShown: false }} />
         <Stack.Screen name="matchmaking" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="match/[id]" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="edit-profile" options={{ title: 'Edit profile', presentation: 'modal' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
-          <Stack.Screen name="user/[id]" options={{ title: 'Player' }} />
-          <Stack.Screen name="history" options={{ title: 'Match history' }} />
+        <Stack.Screen name="edit-profile" options={{ title: 'EDIT PROFILE', presentation: 'modal' }} />
+        <Stack.Screen name="settings" options={{ title: 'SETTINGS', presentation: 'modal' }} />
+          <Stack.Screen name="user/[id]" options={{ title: 'PLAYER' }} />
+          <Stack.Screen name="history" options={{ title: 'MATCH HISTORY' }} />
         </Stack>
       </View>
     </GestureHandlerRootView>

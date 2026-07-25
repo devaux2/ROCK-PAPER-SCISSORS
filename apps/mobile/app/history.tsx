@@ -38,7 +38,13 @@ export default function History() {
         keyExtractor={(row) => row.matchId}
         contentContainerStyle={{ padding: 16 }}
         ListEmptyComponent={
-          rows ? <Text style={styles.empty}>No matches yet. Go throw something.</Text> : null
+          rows ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyEmoji}>🥊</Text>
+              <DisplayText size={30} color={theme.text}>No bouts yet</DisplayText>
+              <Text style={styles.empty}>No matches yet. Go throw something.</Text>
+            </View>
+          ) : null
         }
         renderItem={({ item, index }) => {
           const outcome = outcomeLabel(item);
@@ -91,7 +97,9 @@ export default function History() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
-  empty: { color: theme.textDim, textAlign: 'center', marginTop: 60 },
+  emptyWrap: { alignItems: 'center', marginTop: 70, gap: 8 },
+  emptyEmoji: { fontSize: 54 },
+  empty: { color: theme.textDim, textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

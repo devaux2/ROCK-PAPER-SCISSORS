@@ -147,7 +147,7 @@ function RevealScene({ myMove, oppMove, outcome, onDone }: RevealSceneProps) {
           <DisplayText
             size={countdown === 'FIGHT!' ? 58 : 52}
             color={countdown === 'FIGHT!' ? fighterMeta.theme.accent : fighterMeta.theme.text}
-            style={countdown === 'FIGHT!' ? theme.glow(fighterMeta.theme.accent, 20) : undefined}
+            style={countdown === 'FIGHT!' ? theme.textGlow(fighterMeta.theme.accent, 20) : undefined}
           >
             {countdown}
           </DisplayText>
@@ -208,9 +208,9 @@ function MatchEndScene({ won, reason }: MatchEndSceneProps) {
             entering={FadeInDown.delay(i * 45).springify().damping(11).stiffness(320)}
           >
             <DisplayText
-              size={38}
-              color={won ? fighterMeta.theme.accent : fighterMeta.theme.textDim}
-              style={won ? theme.glow(fighterMeta.theme.accent, 16) : undefined}
+              size={40}
+              color={won ? fighterMeta.theme.accent : theme.danger}
+              style={theme.textGlow(won ? fighterMeta.theme.accent : theme.danger, 16)}
             >
               {ch === ' ' ? ' ' : ch}
             </DisplayText>

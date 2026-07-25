@@ -7,7 +7,11 @@ import { theme } from '../../src/theme';
 import { ChallengeToast } from '../../src/components/ChallengeToast';
 
 function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
-  return <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>{icon}</Text>;
+  return (
+    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.3, transform: [{ scale: focused ? 1 : 0.9 }] }}>
+      {icon}
+    </Text>
+  );
 }
 
 export default function MainLayout() {
@@ -33,7 +37,7 @@ export default function MainLayout() {
         screenOptions={{
           headerStyle: { backgroundColor: theme.bg },
           headerTintColor: theme.text,
-          headerTitleStyle: { fontWeight: '800' },
+          headerTitleStyle: { fontFamily: theme.fonts.display, fontSize: 22, letterSpacing: 1.5 },
           tabBarStyle: {
             backgroundColor: theme.bgRaised,
             borderTopColor: theme.panelBorder,
@@ -60,6 +64,7 @@ export default function MainLayout() {
           name="friends"
           options={{
             title: 'Friends',
+            headerTitle: 'FRIENDS',
             tabBarIcon: ({ focused }) => <TabIcon icon="👥" focused={focused} />,
           }}
         />
@@ -67,6 +72,7 @@ export default function MainLayout() {
           name="leaderboard"
           options={{
             title: 'Leaderboard',
+            headerTitle: 'LEADERBOARD',
             tabBarIcon: ({ focused }) => <TabIcon icon="🏆" focused={focused} />,
           }}
         />
@@ -74,6 +80,7 @@ export default function MainLayout() {
           name="profile"
           options={{
             title: 'Profile',
+            headerTitle: 'PROFILE',
             tabBarIcon: ({ focused }) => <TabIcon icon="🧑" focused={focused} />,
           }}
         />

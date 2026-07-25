@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  FadeIn,
   useSharedValue,
   useAnimatedStyle,
   withDelay,
@@ -12,13 +13,17 @@ import { theme } from '../theme';
 import { PressableScale } from './ui';
 
 const ITEM = 44;
-/** Two arcs so 8 emotes never overlap (44px targets stay tappable). */
+/**
+ * Two interleaved arcs (a rose): the outer ring's angles fall midway
+ * between the inner ring's, so all 8 targets keep clear air.
+ */
 const RINGS = [
-  { radius: 76, count: 3 },
-  { radius: 138, count: 5 },
+  // 3-in / 5-out keeps every 44px target ≥6px of clear air on both rings.
+  { radius: 84, count: 3, offset: 0.5 },
+  { radius: 148, count: 5, offset: 0 },
 ];
-const SWEEP_START = Math.PI * 0.97; // just past straight-left
-const SWEEP_END = Math.PI * 0.53; // just short of straight-up
+const SWEEP_START = Math.PI * 1.02; // just past straight-left
+const SWEEP_END = Math.PI * 0.48; // just past straight-up
 
 /**
  * Radial emote wheel: tap the corner face button to fan 8 emotes in two
@@ -38,14 +43,23 @@ export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
       staggerIndex: startIdx + i,
       radius: ring.radius,
       angle:
-        ring.count === 1
-          ? (SWEEP_START + SWEEP_END) / 2
-          : SWEEP_START + ((SWEEP_END - SWEEP_START) * i) / (ring.count - 1),
+        SWEEP_START +
+        ((SWEEP_END - SWEEP_START) * (i + ring.offset)) / ring.count +
+        (SWEEP_END - SWEEP_START) / (ring.count * 2),
     }));
   });
 
   return (
-    <View pointerEvents="box-none" style={styles.root}>
+    <>
+      {open && (
+        <Animated.View
+          entering={FadeIn.duration(140)}
+          style={styles.scrim}
+          onTouchEnd={() => setOpen(false)}
+          onPointerDown={() => setOpen(false)}
+        />
+      )}
+      <View pointerEvents="box-none" style={styles.root}>
       {items.map(({ emote, key, staggerIndex, radius, angle }) => (
         <WheelItem
           key={key}
@@ -68,7 +82,8 @@ export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
       >
         <Text style={styles.triggerText}>{open ? '✕' : '😏'}</Text>
       </PressableScale>
-    </View>
+      </View>
+    </>
   );
 }
 
@@ -149,7 +164,16 @@ export function EmoteBubble({ emoteId, seq }: { emoteId: EmoteId; seq: number })
 }
 
 const styles = StyleSheet.create({
-  root: { position: 'absolute', right: 20, bottom: 24, alignItems: 'center', justifyContent: 'center' },
+  // Sits above the move row so it never covers Forfeit or the third card.
+  root: { position: 'absolute', right: 20, bottom: 232, alignItems: 'center', justifyContent: 'center' },
+  scrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(11, 14, 26, 0.72)',
+  },
   trigger: {
     width: 56,
     height: 56,

@@ -94,7 +94,11 @@ export default function Friends() {
         ]}
         keyExtractor={(item) => `${item.section}-${item.user.id}`}
         ListEmptyComponent={
-          <Text style={styles.empty}>No friends yet — add someone by username to rematch them anytime.</Text>
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyEmoji}>🤝</Text>
+            <DisplayText size={30} color={theme.text}>No rivals yet</DisplayText>
+            <Text style={styles.empty}>No friends yet — add someone by username to rematch them anytime.</Text>
+          </View>
         }
         renderItem={({ item, index }) => {
           return (
@@ -257,7 +261,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg, padding: 16 },
   addRow: { flexDirection: 'row', alignItems: 'center' },
   info: { color: theme.green, textAlign: 'center', marginVertical: 4, fontWeight: '700' },
-  empty: { color: theme.textDim, textAlign: 'center', marginTop: 40, paddingHorizontal: 20 },
+  emptyWrap: { alignItems: 'center', marginTop: 48, gap: 8, paddingHorizontal: 20 },
+  emptyEmoji: { fontSize: 54 },
+  empty: { color: theme.textDim, textAlign: 'center' },
   section: { marginTop: 14, marginBottom: 2 },
   rowCard: {
     flexDirection: 'row',

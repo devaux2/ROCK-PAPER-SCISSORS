@@ -1,4 +1,4 @@
-import type { ViewStyle } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
 
 /**
  * App-wide "ARENA" design tokens (docs/DESIGN.md). Skins theme the game
@@ -39,12 +39,23 @@ export const theme = {
     sheet: { damping: 16, stiffness: 220 },
   },
 
-  /** Soft colored glow; RN-web turns shadow* into box-shadow. */
+  /**
+   * Soft colored glow for ROUNDED CONTAINERS ONLY — RN-web turns shadow*
+   * into box-shadow around the element's box, so apply this to the view
+   * that owns the borderRadius, never to text or a plain wrapper.
+   */
   glow: (color: string, radius = 18): ViewStyle => ({
     shadowColor: color,
     shadowOpacity: 0.45,
     shadowRadius: radius,
     shadowOffset: { width: 0, height: 0 },
     elevation: 8,
+  }),
+
+  /** Glow for TEXT — halo hugs the glyphs on native and web alike. */
+  textGlow: (color: string, radius = 16): TextStyle => ({
+    textShadowColor: color,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: radius,
   }),
 };

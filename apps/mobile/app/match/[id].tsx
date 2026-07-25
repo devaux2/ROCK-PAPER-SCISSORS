@@ -175,6 +175,7 @@ export default function MatchScreen() {
       <View style={styles.arena}>
         {phase === 'choosing' && (
           <>
+            <View style={[styles.arenaGlowRing, { borderColor: skin.theme.accent }]} />
             <View style={styles.roundTag}>
               <Tag>ROUND {roundNo}</Tag>
             </View>
@@ -188,6 +189,9 @@ export default function MatchScreen() {
                 {`Pick your ${skin.id === 'fighter' ? 'strike' : 'throw'}!`}
               </Text>
             )}
+            <PulsingText color={skin.theme.textDim}>
+              {opponent.isBot ? 'RoboThrow is computing…' : `${opponent.username} is choosing…`}
+            </PulsingText>
           </>
         )}
         {phase === 'revealing' && lastResult && !revealDone && (
@@ -199,7 +203,9 @@ export default function MatchScreen() {
           />
         )}
         {phase === 'revealing' && revealDone && (
-          <Text style={[styles.prompt, { color: skin.theme.textDim }]}>Next round…</Text>
+          <DisplayText size={30} color={skin.theme.accent} style={theme.textGlow(skin.theme.accent, 12)}>
+            Next round…
+          </DisplayText>
         )}
         {phase === 'ended' && endResult && (
           <Animated.View entering={FadeIn.duration(300)} style={styles.endWrap}>
@@ -324,6 +330,14 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   pipFill: { width: 12, height: 12, borderRadius: 6 },
+  arenaGlowRing: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    borderWidth: 1.5,
+    opacity: 0.16,
+  },
   arena: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
   roundTag: { alignItems: 'center', marginBottom: 10 },
   prompt: { fontSize: 17, fontWeight: '700', marginTop: 14, textAlign: 'center' },
