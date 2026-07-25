@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts, BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
@@ -37,6 +38,7 @@ export default function RootLayout() {
   const token = useAuthStore((s) => s.token);
   const hydrated = useAuthStore((s) => s.hydrated);
   const [started, setStarted] = useState(false);
+  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
 
   useEffect(() => {
     void useSettingsStore.getState().hydrate();
@@ -51,7 +53,7 @@ export default function RootLayout() {
     return () => disconnectSocket();
   }, [token]);
 
-  if (!started || !hydrated) return null;
+  if (!started || !hydrated || !fontsLoaded) return null;
 
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
@@ -59,13 +61,15 @@ export default function RootLayout() {
       {/* On web the game stays a phone-shaped column even on wide screens. */}
       <View style={styles.shell}>
         <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: theme.bg },
-          headerTintColor: theme.text,
-          contentStyle: { backgroundColor: theme.bg },
-          headerTitleStyle: { fontWeight: '800' },
-        }}
-      >
+          screenOptions={{
+            headerStyle: { backgroundColor: theme.bg },
+            headerTintColor: theme.text,
+            contentStyle: { backgroundColor: theme.bg },
+            headerTitleStyle: { fontWeight: '800' },
+            animation: 'slide_from_right',
+            animationDuration: 260,
+          }}
+        >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(main)" options={{ headerShown: false }} />
         <Stack.Screen name="matchmaking" options={{ headerShown: false, gestureEnabled: false }} />

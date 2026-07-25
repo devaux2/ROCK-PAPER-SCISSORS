@@ -1,22 +1,55 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { theme } from '../theme';
 
-/** Counts down to an absolute epoch-ms deadline (server-authoritative). */
+/**
+ * Counts down to an absolute epoch-ms deadline (server-authoritative).
+ * Final 3 seconds: flips hot and pulses on every tick.
+ */
 export function Countdown({ deadline }: { deadline: number }) {
   const [remaining, setRemaining] = useState(() => Math.max(0, deadline - Date.now()));
+  const pulse = useSharedValue(1);
+  const seconds = Math.ceil(remaining / 1000);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setRemaining(Math.max(0, deadline - Date.now()));
     }, 100);
     return () => clearInterval(interval);
   }, [deadline]);
-  const seconds = Math.ceil(remaining / 1000);
+
+  useEffect(() => {
+    if (seconds <= 3 && seconds > 0) {
+      pulse.value = withSequence(
+        withSpring(1.22, theme.springs.pop),
+        withTiming(1, { duration: 220 })
+      );
+    }
+  }, [seconds, pulse]);
+
+  const animated = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  const urgent = seconds <= 3;
+
   return (
-    <Text style={[styles.text, seconds <= 3 && { color: theme.red }]}>{seconds}</Text>
+    <Animated.Text
+      style={[
+        {
+          fontFamily: theme.fonts.display,
+          fontSize: 44,
+          letterSpacing: 2,
+          textAlign: 'center',
+          color: urgent ? theme.danger : theme.text,
+        },
+        animated,
+      ]}
+    >
+      {seconds}
+    </Animated.Text>
   );
 }
-
-const styles = StyleSheet.create({
-  text: { fontSize: 34, fontWeight: '900', color: theme.text, textAlign: 'center' },
-});
