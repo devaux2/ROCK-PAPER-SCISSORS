@@ -223,14 +223,20 @@ describe('e2e: real socket clients play ranked matches', () => {
     expect(annHistory[1].myScore).toBe(2);
   }, 60_000);
 
-  it('refunds escrow on queue leave and rejects invalid tiers', async () => {
+  it('refunds escrow on queue leave, rejects invalid tiers and unaffordable wagers', async () => {
     const pauper = await connect('pauper');
-    expect((await ack(pauper.socket, 'queue:join', { mode: 'ranked', wagerTier: 500 })).ok).toBe(true);
-    expect((await me('pauper')).coins).toBe(0);
+    expect((await ack(pauper.socket, 'queue:join', { mode: 'ranked', wagerTier: 100 })).ok).toBe(true);
+    expect((await me('pauper')).coins).toBe(400);
     pauper.socket.emit('queue:leave');
     await new Promise((r) => setTimeout(r, 150));
     expect((await me('pauper')).coins).toBe(500);
+    // 500 was a tier once; it isn't any more.
+    expect((await ack(pauper.socket, 'queue:join', { mode: 'ranked', wagerTier: 500 })).ok).toBe(false);
     expect((await ack(pauper.socket, 'queue:join', { mode: 'ranked', wagerTier: 77 })).ok).toBe(false);
+    // 1000 is a real tier but out of reach on a fresh 500-coin account.
+    const broke = await ack(pauper.socket, 'queue:join', { mode: 'ranked', wagerTier: 1000 });
+    expect(broke.ok).toBe(false);
+    expect((await me('pauper')).coins).toBe(500);
   });
 
   it('plays a bot match end-to-end without touching coins, elo or win rate', async () => {

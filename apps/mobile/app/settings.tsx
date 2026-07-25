@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSettingsStore } from '../src/stores/settingsStore';
-import { playSound } from '../src/sound';
+import { playSound, syncMusic } from '../src/sound';
 import { SKINS } from '../src/skins';
 import { MOVES } from '@rps/shared';
 import { Card, DisplayText, PressableScale, Tag } from '../src/components/ui';
@@ -14,10 +14,27 @@ export default function Settings() {
   const setSkin = useSettingsStore((s) => s.setSkin);
   const soundEnabled = useSettingsStore((s) => s.soundEnabled);
   const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
+  const musicEnabled = useSettingsStore((s) => s.musicEnabled);
+  const setMusicEnabled = useSettingsStore((s) => s.setMusicEnabled);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: 20 }}>
       <Animated.View entering={FadeInDown.springify()}>
+        <Card style={styles.soundRow}>
+          <View>
+            <Text style={styles.soundLabel}>Music</Text>
+            <Text style={styles.hint}>The arena loop.</Text>
+          </View>
+          <Switch
+            value={musicEnabled}
+            onValueChange={(v) => {
+              setMusicEnabled(v);
+              syncMusic();
+            }}
+            trackColor={{ true: theme.accent, false: theme.panelBorder }}
+            thumbColor={theme.text}
+          />
+        </Card>
         <Card style={styles.soundRow}>
           <View>
             <Text style={styles.soundLabel}>Sound effects</Text>

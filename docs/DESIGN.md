@@ -57,8 +57,9 @@ feel like the seconds before a fight, never like a settings dialog.
 - Keep these exact user-visible strings/labels:
   - Auth: placeholder "Username (3–20 chars)", "Password (6+ chars)",
     link "New here? Create an account", button "Create account"
-  - Home: "Find ranked match", "Find casual match", "Play vs bot",
-    wager rows contain "🪙 10/50/100/500", "Settings & skins" entry exists
+  - Home: giant "Play" CTA, "Play vs bot", "Settings & skins" entry, and
+    the wager chip (accessibilityLabel "Wager selector"); stake sheet rows
+    contain "Casual" and "🪙 1/5/10/20/50/100/1000"
   - Match: move labels per skin unchanged (Rock/Paper/Scissors,
     KICK/PUNCH/BLOCK, Fire/Water/Leaf); "Forfeit"; accessibility labels
     "Emote wheel" and "Emote: <label>"; classic end shows VICTORY/DEFEAT;

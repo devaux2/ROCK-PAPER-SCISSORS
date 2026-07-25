@@ -18,6 +18,8 @@ import { Avatar } from '../../src/components/Avatar';
 import { Countdown } from '../../src/components/Countdown';
 import { EmoteWheel, EmoteBubble } from '../../src/components/EmoteWheel';
 import { Button, DisplayText, StatNumber, Tag } from '../../src/components/ui';
+import { useAuthStore } from '../../src/stores/authStore';
+import { VsOverlay } from '../../src/components/VsOverlay';
 import { theme } from '../../src/theme';
 import { playSound } from '../../src/sound';
 
@@ -92,6 +94,16 @@ export default function MatchScreen() {
   const setMyMove = useMatchStore((s) => s.setMyMove);
   const reset = useMatchStore((s) => s.reset);
   const [revealDone, setRevealDone] = useState(false);
+  const [showVs, setShowVs] = useState(false);
+  const me = useAuthStore((s) => s.user);
+
+  // Slam the VS card whenever a fresh match begins (round 1, blank board).
+  useEffect(() => {
+    if (matchId && roundNo === 1 && scores.p1 === 0 && scores.p2 === 0 && phase === 'choosing') {
+      setShowVs(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId]);
   const [rematchError, setRematchError] = useState<string | null>(null);
   const [rematchSent, setRematchSent] = useState(false);
 
@@ -277,6 +289,15 @@ export default function MatchScreen() {
             </Text>
           </View>
         </View>
+      )}
+
+      {showVs && me && (
+        <VsOverlay
+          me={{ username: me.username, avatar: me.avatar }}
+          opponent={{ username: opponent.username, avatar: opponent.avatar }}
+          accent={skin.theme.accent}
+          onDone={() => setShowVs(false)}
+        />
       )}
 
       {/* Practice mode included — taunting the bot is free therapy. */}

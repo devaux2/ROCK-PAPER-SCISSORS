@@ -123,8 +123,9 @@ function AvatarPop({ selected, children }: { selected: boolean; children: React.
   const scale = useSharedValue(1);
   React.useEffect(() => {
     if (selected) {
-      scale.value = withSpring(1.15, theme.springs.pop, () => {
-        scale.value = withSpring(1, theme.springs.press);
+      scale.value = withSpring(1.15, theme.springs.pop, (finished) => {
+        'worklet';
+        if (finished) scale.value = withSpring(1, theme.springs.press);
       });
     }
   }, [selected, scale]);

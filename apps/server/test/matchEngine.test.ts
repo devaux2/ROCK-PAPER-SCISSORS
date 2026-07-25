@@ -1,5 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ROUND_TIME_MS, REVEAL_TIME_MS, DISCONNECT_GRACE_MS, type MatchEndPayload } from '@rps/shared';
+import {
+  ROUND_TIME_MS,
+  FIRST_ROUND_EXTRA_MS,
+  REVEAL_TIME_MS,
+  DISCONNECT_GRACE_MS,
+  type MatchEndPayload,
+} from '@rps/shared';
+
+// Round 1 carries the match-found grace on top of the base window.
+const ROUND1_MS = ROUND_TIME_MS + FIRST_ROUND_EXTRA_MS;
 import { MatchEngine, type MatchResult, type SeatSettlement } from '../src/game/MatchEngine';
 import { FakePort } from './helpers';
 
@@ -98,7 +107,7 @@ describe('MatchEngine', () => {
     engine.start();
 
     engine.submitMove(1, 'A');
-    vi.advanceTimersByTime(ROUND_TIME_MS);
+    vi.advanceTimersByTime(ROUND1_MS);
     // Round resolved despite p2 never moving.
     expect(p1.count('round:result')).toBe(1);
     expect(p2.last('round:result')?.yourMove).toBeDefined();
@@ -111,7 +120,7 @@ describe('MatchEngine', () => {
     engine.start();
 
     engine.submitMove(1, 'A');
-    vi.advanceTimersByTime(ROUND_TIME_MS); // p2 timeout #1
+    vi.advanceTimersByTime(ROUND1_MS); // p2 timeout #1
     vi.advanceTimersByTime(REVEAL_TIME_MS);
     engine.submitMove(1, 'A');
     vi.advanceTimersByTime(ROUND_TIME_MS); // p2 timeout #2 -> forfeit
@@ -127,7 +136,7 @@ describe('MatchEngine', () => {
     const { engine, results } = makeEngine(p1, p2);
     engine.start();
 
-    vi.advanceTimersByTime(ROUND_TIME_MS); // both timeout #1
+    vi.advanceTimersByTime(ROUND1_MS); // both timeout #1
     vi.advanceTimersByTime(REVEAL_TIME_MS);
     vi.advanceTimersByTime(ROUND_TIME_MS); // both timeout #2
 
@@ -142,7 +151,7 @@ describe('MatchEngine', () => {
     engine.start();
 
     engine.submitMove(1, 'A');
-    vi.advanceTimersByTime(ROUND_TIME_MS); // p2 timeout #1
+    vi.advanceTimersByTime(ROUND1_MS); // p2 timeout #1
     vi.advanceTimersByTime(REVEAL_TIME_MS);
     engine.submitMove(1, 'A');
     engine.submitMove(2, 'A'); // p2 moves -> counter reset (draw, replay)
@@ -191,8 +200,8 @@ describe('MatchEngine', () => {
     vi.advanceTimersByTime(REVEAL_TIME_MS);
 
     engine.playerDisconnected(2);
-    // Reconnect inside both the grace window and the round timer.
-    vi.advanceTimersByTime(5000);
+    // Reconnect inside both the grace window and the (4s) round timer.
+    vi.advanceTimersByTime(2000);
     const p2b = new FakePort(2);
     engine.playerReconnected(2, p2b);
 

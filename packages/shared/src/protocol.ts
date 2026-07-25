@@ -7,9 +7,11 @@ export type MatchMode = 'ranked' | 'casual' | 'bot';
 export type MatchEndReason = 'score' | 'forfeit' | 'disconnect';
 
 /** Server-side timings, exported so clients and tests share one source of truth. */
-export const ROUND_TIME_MS = 10_000;
+export const ROUND_TIME_MS = 4_000;
+/** Extra time on the very first round so the match-found moment isn't unfair. */
+export const FIRST_ROUND_EXTRA_MS = 1_200;
 export const REVEAL_TIME_MS = 3_000;
-export const DISCONNECT_GRACE_MS = 20_000;
+export const DISCONNECT_GRACE_MS = 10_000;
 export const CHALLENGE_TTL_MS = 60_000;
 export const REMATCH_TTL_MS = 60_000;
 

@@ -1,12 +1,25 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import Animated, { FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  SlideInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { WAGER_TIERS, DAILY_TOPUP_THRESHOLD, type WagerTier } from '@rps/shared';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useMatchStore } from '../../src/stores/matchStore';
+import { useSettingsStore } from '../../src/stores/settingsStore';
 import { game } from '../../src/socket/socket';
 import { api } from '../../src/api/client';
+import { playSound, startMusic } from '../../src/sound';
 import {
   Button,
   Card,
@@ -23,6 +36,8 @@ export default function Home() {
   const user = useAuthStore((s) => s.user);
   const refreshMe = useAuthStore((s) => s.refreshMe);
   const startQueueing = useMatchStore((s) => s.startQueueing);
+  const wager = useSettingsStore((s) => s.wager);
+  const setWager = useSettingsStore((s) => s.setWager);
   const [wagerSheet, setWagerSheet] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [topupMsg, setTopupMsg] = useState<string | null>(null);
@@ -30,31 +45,24 @@ export default function Home() {
   useFocusEffect(
     useCallback(() => {
       void refreshMe();
+      startMusic();
     }, [refreshMe])
   );
 
-  // Mark queueing BEFORE emitting: the server can pair instantly, so
-  // match:start may arrive before the join ack — the store must not be
-  // reset after that.
-  async function queueRanked(tier: WagerTier) {
-    setWagerSheet(false);
-    setError(null);
-    startQueueing('ranked', tier);
-    const res = await game.joinQueue('ranked', tier);
-    if (!res.ok) {
-      useMatchStore.getState().stopQueueing();
-      setError(res.error ?? 'Could not join queue');
-      return;
-    }
-    // Instant pairing can beat the ack: if the match already started, the
-    // (main) layout has navigated there — don't stack /matchmaking on top.
-    if (useMatchStore.getState().phase === 'queueing') router.push('/matchmaking');
-  }
+  const coins = user?.coins ?? 0;
+  const affordable = wager === 0 || coins >= wager;
 
-  async function queueCasual() {
+  // The one button that matters. Wager 0 -> casual, otherwise ranked
+  // matched inside the same wager bracket.
+  async function play() {
     setError(null);
-    startQueueing('casual', 0);
-    const res = await game.joinQueue('casual');
+    startMusic();
+    playSound('click');
+    const ranked = wager > 0;
+    startQueueing(ranked ? 'ranked' : 'casual', wager);
+    const res = ranked
+      ? await game.joinQueue('ranked', wager as WagerTier)
+      : await game.joinQueue('casual');
     if (!res.ok) {
       useMatchStore.getState().stopQueueing();
       setError(res.error ?? 'Could not join queue');
@@ -65,9 +73,9 @@ export default function Home() {
 
   async function playBot() {
     setError(null);
+    startMusic();
     const res = await game.startBotMatch();
     if (!res.ok) setError(res.error ?? 'Could not start practice match');
-    // match:start will navigate via the (main) layout effect.
   }
 
   async function claimTopup() {
@@ -75,124 +83,192 @@ export default function Home() {
     try {
       const res = await api.dailyTopup();
       setTopupMsg(`+${res.granted} coins claimed!`);
+      playSound('win');
       void refreshMe();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Top-up failed');
     }
   }
 
-  const canTopup = (user?.coins ?? 0) < DAILY_TOPUP_THRESHOLD;
+  const canTopup = coins < DAILY_TOPUP_THRESHOLD;
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <Animated.View entering={FadeInDown.springify()} style={styles.header}>
-        <DisplayText size={44} color={theme.accent} style={[styles.logo, theme.textGlow(theme.accent, 20)]}>
-          THROWDOWN
-        </DisplayText>
-        <View style={styles.statRow}>
-          <View style={styles.statPill}>
-            <Text style={styles.statEmoji}>🪙</Text>
-            <StatNumber value={user?.coins ?? 0} size={22} color={theme.accent} />
+    <View style={styles.root}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
+        <Animated.View entering={FadeInDown.springify()}>
+          <DisplayText
+            size={40}
+            color={theme.accent}
+            style={[styles.logo, theme.textGlow(theme.accent, 18)]}
+          >
+            Throwdown
+          </DisplayText>
+          <View style={styles.chipRow}>
+            <View style={styles.chip}>
+              <StatNumber value={coins} size={20} color={theme.accent} prefix="🪙 " />
+            </View>
+            <View style={styles.chip}>
+              <StatNumber value={user?.elo ?? 1000} size={20} color={theme.blue} suffix=" ELO" prefix="⚡ " />
+            </View>
           </View>
-          <View style={styles.statPill}>
-            <Text style={styles.statEmoji}>⚡</Text>
-            <StatNumber value={user?.elo ?? 1000} size={22} color={theme.blue} suffix=" ELO" />
-          </View>
-        </View>
-      </Animated.View>
-
-      {canTopup && (
-        <Animated.View entering={FadeInDown.delay(60).springify()}>
-          <Card style={{ borderColor: theme.accent }}>
-            <Text style={styles.topupText}>Running low? Claim your daily coins.</Text>
-            <Button title="Claim daily top-up" onPress={claimTopup} />
-            {topupMsg && <Text style={styles.topupMsg}>{topupMsg}</Text>}
-          </Card>
         </Animated.View>
-      )}
 
-      <ErrorText error={error} />
+        {canTopup && (
+          <Animated.View entering={FadeInDown.delay(60).springify()}>
+            <Card glow={theme.accent} style={{ borderColor: theme.accent }}>
+              <Text style={styles.topupText}>Running low? Claim your daily coins.</Text>
+              <Button title="Claim daily top-up" onPress={claimTopup} />
+              {topupMsg && <Text style={styles.topupMsg}>{topupMsg}</Text>}
+            </Card>
+          </Animated.View>
+        )}
 
-      <Animated.View entering={FadeInDown.delay(120).springify()}>
-        <Card glow={theme.accent} style={styles.heroCard}>
-          <View style={styles.modeHeader}>
-            <DisplayText size={26} color={theme.text}>⚔️ Ranked</DisplayText>
-            <Tag>Winner takes pot</Tag>
-          </View>
-          <Text style={styles.modeDesc}>
-            Wager coins, winner takes the pot. Elo on the line.
+        <ErrorText error={error} />
+
+        {/* The arena floor: one giant PLAY */}
+        <Animated.View entering={FadeInDown.delay(120).springify()} style={styles.playZone}>
+          <PlayButton disabled={!affordable} onPress={play} />
+          <Text style={styles.playHint}>
+            {wager === 0
+              ? 'Casual — nothing at stake'
+              : affordable
+                ? `Winner takes 🪙 ${wager * 2}`
+                : `You need 🪙 ${wager} for this bracket`}
           </Text>
-          <Button title="Find ranked match" size="lg" onPress={() => setWagerSheet(true)} />
-        </Card>
-      </Animated.View>
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.delay(180).springify()}>
-        <Card>
-          <DisplayText size={22} color={theme.text}>🎲 Casual</DisplayText>
-          <Text style={styles.modeDesc}>No wager, no rating. Just throws.</Text>
-          <Button title="Find casual match" variant="secondary" onPress={queueCasual} />
-        </Card>
-      </Animated.View>
-
-      <Animated.View entering={FadeInDown.delay(240).springify()}>
-        <Card>
-          <DisplayText size={22} color={theme.text}>🤖 Practice</DisplayText>
-          <Text style={styles.modeDesc}>Sharpen up against RoboThrow. Nothing at stake.</Text>
+        <Animated.View entering={FadeInDown.delay(180).springify()} style={styles.secondaryRow}>
           <Button title="Play vs bot" variant="secondary" onPress={playBot} />
-        </Card>
-      </Animated.View>
+          <Button title="⚙️  Settings & skins" variant="ghost" onPress={() => router.push('/settings')} />
+        </Animated.View>
+      </ScrollView>
 
-      <Animated.View entering={FadeInDown.delay(300).springify()}>
-        <Button title="⚙️  Settings & skins" variant="ghost" onPress={() => router.push('/settings')} />
-      </Animated.View>
+      {/* Wager selector — bottom right, always in thumb's reach */}
+      <PressableScale
+        accessibilityLabel="Wager selector"
+        style={[styles.wagerChip, wager > 0 && styles.wagerChipActive, wager > 0 && theme.glow(theme.accent, 12)]}
+        onPress={() => {
+          playSound('click');
+          setWagerSheet(true);
+        }}
+      >
+        <Text
+          style={[
+            styles.wagerChipLabel,
+            { color: wager > 0 ? 'rgba(0,0,0,0.5)' : theme.textDim },
+          ]}
+        >
+          STAKE
+        </Text>
+        <DisplayText size={22} color={wager === 0 ? theme.textDim : theme.accentText}>
+          {wager === 0 ? 'Casual' : `🪙 ${wager}`}
+        </DisplayText>
+      </PressableScale>
 
       <Modal visible={wagerSheet} transparent animationType="none" onRequestClose={() => setWagerSheet(false)}>
-        <Animated.View entering={FadeIn.duration(160)} style={styles.sheetBackdropFill}>
-          <Pressable style={styles.sheetBackdrop} onPress={() => setWagerSheet(false)}>
-            <Animated.View entering={SlideInDown.springify().damping(16)}>
-              <Pressable style={styles.sheet} onPress={() => {}}>
-                <View style={styles.sheetHandle} />
-                <DisplayText size={26} color={theme.text} style={styles.sheetTitle}>
-                  Choose your wager
-                </DisplayText>
-                {WAGER_TIERS.map((tier) => {
-                  const affordable = (user?.coins ?? 0) >= tier;
-                  return (
-                    <PressableScale
-                      key={tier}
-                      disabled={!affordable}
-                      onPress={() => queueRanked(tier)}
-                      style={[styles.tier, !affordable && styles.tierDisabled]}
-                    >
-                      <DisplayText size={22} color={affordable ? theme.accent : theme.textDim}>
-                        🪙 {tier}
-                      </DisplayText>
-                      <DisplayText size={18} color={affordable ? theme.green : theme.textDim}>
-                        win {tier * 2}
-                      </DisplayText>
-                    </PressableScale>
-                  );
-                })}
-                <Button title="Cancel" variant="ghost" onPress={() => setWagerSheet(false)} />
-              </Pressable>
-            </Animated.View>
-          </Pressable>
+        <Animated.View entering={FadeIn.duration(140)} style={styles.sheetBackdrop}>
+          <Pressable style={{ flex: 1 }} onPress={() => setWagerSheet(false)} />
+          <Animated.View entering={SlideInDown.springify().damping(16)} style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <DisplayText size={24} style={{ textAlign: 'center', marginBottom: 12 }}>
+              Choose your stake
+            </DisplayText>
+            <TierRow
+              label="Casual"
+              sub="no wager · no elo"
+              selected={wager === 0}
+              affordable
+              onPress={() => {
+                setWager(0);
+                setWagerSheet(false);
+              }}
+            />
+            {WAGER_TIERS.map((tier) => (
+              <TierRow
+                key={tier}
+                label={`🪙 ${tier}`}
+                sub={`win ${tier * 2}`}
+                selected={wager === tier}
+                affordable={coins >= tier}
+                onPress={() => {
+                  setWager(tier);
+                  setWagerSheet(false);
+                }}
+              />
+            ))}
+          </Animated.View>
         </Animated.View>
       </Modal>
-    </ScrollView>
+    </View>
+  );
+}
+
+/** The giant pulsing PLAY button. */
+function PlayButton({ disabled, onPress }: { disabled: boolean; onPress: () => void }) {
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1.035, { duration: 900, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1
+    );
+  }, [pulse]);
+  const animated = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  return (
+    <Animated.View style={[animated, { width: '100%' }]}>
+      <PressableScale onPress={onPress} disabled={disabled} style={disabled && { opacity: 0.5 }}>
+        <LinearGradient
+          colors={theme.gradients.cta}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.playButton, !disabled && theme.glow('#FFB020', 22)]}
+        >
+          <DisplayText size={56} color={theme.accentText}>
+            Play
+          </DisplayText>
+        </LinearGradient>
+      </PressableScale>
+    </Animated.View>
+  );
+}
+
+function TierRow({
+  label,
+  sub,
+  selected,
+  affordable,
+  onPress,
+}: {
+  label: string;
+  sub: string;
+  selected: boolean;
+  affordable: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <PressableScale
+      disabled={!affordable}
+      onPress={onPress}
+      style={[styles.tier, selected && styles.tierSelected, !affordable && { opacity: 0.4 }]}
+    >
+      <DisplayText size={22} color={selected ? theme.accent : theme.text}>
+        {label}
+      </DisplayText>
+      <Text style={[styles.tierSub, { color: label === 'Casual' ? theme.textDim : theme.green }]}>
+        {sub}
+      </Text>
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
-  content: { padding: 20, paddingTop: 64, paddingBottom: 110 },
-  header: { alignItems: 'center' },
+  content: { padding: 20, paddingTop: 56, paddingBottom: 120, flexGrow: 1 },
   logo: { textAlign: 'center' },
-  statRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginVertical: 14 },
-  statPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  chipRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 12 },
+  chip: {
     backgroundColor: theme.bgRaised,
     borderWidth: 1,
     borderColor: theme.panelBorder,
@@ -200,23 +276,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 7,
   },
-  statEmoji: { fontSize: 16 },
-  heroCard: { borderColor: theme.accent },
-  modeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
   topupText: { color: theme.text, marginBottom: 8, fontWeight: '600' },
   topupMsg: { color: theme.green, marginTop: 6, textAlign: 'center', fontWeight: '700' },
-  modeDesc: { color: theme.textDim, marginTop: 6, marginBottom: 12, fontWeight: '600' },
-  sheetBackdropFill: { flex: 1 },
-  sheetBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(4,6,14,0.72)',
-    justifyContent: 'flex-end',
+  playZone: { flex: 1, justifyContent: 'center', paddingVertical: theme.space(8) },
+  playButton: {
+    minHeight: 130,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  playHint: {
+    color: theme.textDim,
+    textAlign: 'center',
+    marginTop: 12,
+    fontWeight: '700',
+  },
+  secondaryRow: { marginTop: theme.space(2) },
+  wagerChip: {
+    position: 'absolute',
+    right: 18,
+    bottom: 20,
+    backgroundColor: theme.bgRaised,
+    borderWidth: 1.5,
+    borderColor: theme.panelBorder,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignItems: 'center',
+    minWidth: 96,
+  },
+  wagerChipActive: { backgroundColor: theme.accent, borderColor: theme.accentHot },
+  wagerChipLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)' },
   sheet: {
     backgroundColor: theme.panel,
     borderTopLeftRadius: 24,
@@ -224,28 +319,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.panelBorder,
     padding: 20,
-    paddingBottom: 36,
+    paddingBottom: 34,
   },
   sheetHandle: {
     alignSelf: 'center',
-    width: 44,
+    width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: theme.panelBorder,
     marginBottom: 12,
   },
-  sheetTitle: { textAlign: 'center', marginBottom: 14 },
   tier: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: theme.bgRaised,
     borderRadius: theme.radius.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.panelBorder,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    marginVertical: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginVertical: 4,
   },
-  tierDisabled: { opacity: 0.4 },
+  tierSelected: { borderColor: theme.accent },
+  tierSub: { fontWeight: '800', fontSize: 13 },
 });

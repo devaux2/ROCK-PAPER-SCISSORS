@@ -67,7 +67,10 @@ describe('elo', () => {
 
 describe('economy & emotes validators', () => {
   it('wager tiers', () => {
-    expect(isWagerTier(50)).toBe(true);
+    expect(isWagerTier(1)).toBe(true);
+    expect(isWagerTier(20)).toBe(true);
+    expect(isWagerTier(1000)).toBe(true);
+    expect(isWagerTier(500)).toBe(false);
     expect(isWagerTier(37)).toBe(false);
   });
   it('emote ids', () => {

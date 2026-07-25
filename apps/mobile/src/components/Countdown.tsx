@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { theme } from '../theme';
+import { playSound } from '../sound';
 
 /**
  * Counts down to an absolute epoch-ms deadline (server-authoritative).
@@ -26,6 +27,7 @@ export function Countdown({ deadline }: { deadline: number }) {
 
   useEffect(() => {
     if (seconds <= 3 && seconds > 0) {
+      playSound('tick');
       pulse.value = withSequence(
         withSpring(1.22, theme.springs.pop),
         withTiming(1, { duration: 220 })

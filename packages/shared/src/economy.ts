@@ -1,7 +1,7 @@
 export const STARTING_COINS = 500;
 
 /** Fixed wager tiers keep ranked matchmaking pools liquid. */
-export const WAGER_TIERS = [10, 50, 100, 500] as const;
+export const WAGER_TIERS = [1, 5, 10, 20, 50, 100, 1000] as const;
 export type WagerTier = (typeof WAGER_TIERS)[number];
 
 export function isWagerTier(value: unknown): value is WagerTier {

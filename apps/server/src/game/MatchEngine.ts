@@ -3,6 +3,7 @@ import {
   randomMove,
   ROUNDS_TO_WIN,
   ROUND_TIME_MS,
+  FIRST_ROUND_EXTRA_MS,
   REVEAL_TIME_MS,
   DISCONNECT_GRACE_MS,
   type Move,
@@ -89,6 +90,7 @@ export class MatchEngine {
   private rounds: RoundRecord[] = [];
   private deadline: number | null = null;
 
+  private firstRoundPending = true;
   private roundTimer: ReturnType<typeof setTimeout> | null = null;
   private revealTimer: ReturnType<typeof setTimeout> | null = null;
   private graceTimers: { p1?: ReturnType<typeof setTimeout>; p2?: ReturnType<typeof setTimeout> } = {};
@@ -152,7 +154,10 @@ export class MatchEngine {
     if (this.phase === 'ended') return;
     this.phase = 'choosing';
     this.moves = {};
-    this.deadline = Date.now() + ROUND_TIME_MS;
+    // The opening round absorbs the match-found moment on clients.
+    const roundTime = ROUND_TIME_MS + (this.firstRoundPending ? FIRST_ROUND_EXTRA_MS : 0);
+    this.firstRoundPending = false;
+    this.deadline = Date.now() + roundTime;
     const payload = {
       matchId: this.matchId,
       roundNo: this.roundNo,
@@ -161,7 +166,7 @@ export class MatchEngine {
     };
     this.p1.send('round:start', payload);
     this.p2.send('round:start', payload);
-    this.roundTimer = setTimeout(() => this.onRoundTimeout(), ROUND_TIME_MS);
+    this.roundTimer = setTimeout(() => this.onRoundTimeout(), roundTime);
   }
 
   submitMove(userId: number, move: Move): { ok: boolean; error?: string } {
@@ -186,6 +191,8 @@ export class MatchEngine {
     for (const seat of ['p1', 'p2'] as const) {
       if (!this.moves[seat]) {
         this.moves[seat] = randomMove(this.rng);
+        // Disconnected seats are the grace timer's problem, not AFK's.
+        if (this.disconnected[seat]) continue;
         this.consecutiveTimeouts[seat] += 1;
         if (this.consecutiveTimeouts[seat] >= AFK_TIMEOUT_LIMIT) afk.push(seat);
       }

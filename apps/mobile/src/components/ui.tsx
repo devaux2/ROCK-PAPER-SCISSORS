@@ -102,8 +102,11 @@ export function StatNumber({
   const pop = useSharedValue(1);
   useEffect(() => {
     if (display === value) return;
-    pop.value = withSpring(1.18, theme.springs.pop, () => {
-      pop.value = withSpring(1, theme.springs.press);
+    // Only settle back if THIS spring finished — assigning from a
+    // cancelled callback recurses into the next assignment's cancel.
+    pop.value = withSpring(1.18, theme.springs.pop, (finished) => {
+      'worklet';
+      if (finished) pop.value = withSpring(1, theme.springs.press);
     });
     const from = display;
     const delta = value - from;
