@@ -1,12 +1,22 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  FadeInDown,
+  SlideInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { WAGER_TIERS, type FriendEntry, type WagerTier } from '@rps/shared';
 import { useFriendsStore } from '../../src/stores/friendsStore';
 import { api } from '../../src/api/client';
 import { game } from '../../src/socket/socket';
 import { Avatar } from '../../src/components/Avatar';
-import { Button, Input, ErrorText } from '../../src/components/ui';
+import { Button, Input, ErrorText, Card, Tag, DisplayText, PressableScale } from '../../src/components/ui';
 import { theme } from '../../src/theme';
 
 export default function Friends() {
@@ -88,72 +98,128 @@ export default function Friends() {
         }
         renderItem={({ item, index }) => {
           return (
-            <View>
+            <Animated.View entering={index < 8 ? FadeInDown.delay(index * 60).springify() : undefined}>
               <SectionHeader
                 items={[...incoming, ...accepted, ...outgoing]}
                 index={index}
                 incoming={incoming.length}
                 accepted={accepted.length}
               />
-              <Pressable style={styles.row} onPress={() => router.push(`/user/${item.user.id}`)}>
-                <View>
-                  <Avatar avatar={item.user.avatar} size={44} />
-                  {item.status === 'accepted' && (
-                    <View
-                      style={[styles.dot, { backgroundColor: item.online ? theme.green : theme.textDim }]}
-                    />
-                  )}
-                </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.name}>{item.user.username}</Text>
-                  <Text style={styles.meta}>
-                    ⚡ {item.user.elo} · {Math.round(item.user.winRate * 100)}% wins
-                  </Text>
-                </View>
-                {item.status === 'pending' && item.incoming ? (
-                  <View style={styles.rowButtons}>
-                    <Pressable style={styles.accept} onPress={() => respond(item.user.id, true)}>
-                      <Text style={styles.acceptText}>✓</Text>
-                    </Pressable>
-                    <Pressable style={styles.decline} onPress={() => respond(item.user.id, false)}>
-                      <Text style={styles.declineText}>✕</Text>
-                    </Pressable>
+              <PressableScale onPress={() => router.push(`/user/${item.user.id}`)}>
+                <Card style={styles.rowCard}>
+                  <View>
+                    <Avatar avatar={item.user.avatar} size={44} />
+                    {item.status === 'accepted' && <OnlineDot online={item.online} />}
                   </View>
-                ) : item.status === 'pending' ? (
-                  <Text style={styles.meta}>pending…</Text>
-                ) : (
-                  <Pressable
-                    style={[styles.challengeBtn, !item.online && { opacity: 0.4 }]}
-                    disabled={!item.online}
-                    onPress={() => setChallenging(item)}
-                  >
-                    <Text style={styles.challengeText}>⚔️ Challenge</Text>
-                  </Pressable>
-                )}
-              </Pressable>
-            </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.name}>{item.user.username}</Text>
+                    <Text style={styles.meta}>
+                      ⚡ {item.user.elo} · {Math.round(item.user.winRate * 100)}% wins
+                    </Text>
+                  </View>
+                  {item.status === 'pending' && item.incoming ? (
+                    <View style={styles.rowButtons}>
+                      <PressableScale
+                        style={[styles.circleBtn, styles.accept]}
+                        onPress={() => respond(item.user.id, true)}
+                      >
+                        <Text style={styles.acceptText}>✓</Text>
+                      </PressableScale>
+                      <PressableScale
+                        style={[styles.circleBtn, styles.decline]}
+                        onPress={() => respond(item.user.id, false)}
+                      >
+                        <Text style={styles.declineText}>✕</Text>
+                      </PressableScale>
+                    </View>
+                  ) : item.status === 'pending' ? (
+                    <Text style={styles.meta}>pending…</Text>
+                  ) : (
+                    <PressableScale
+                      style={[styles.challengeWrap, !item.online && { opacity: 0.4 }]}
+                      disabled={!item.online}
+                      onPress={() => setChallenging(item)}
+                    >
+                      <LinearGradient
+                        colors={theme.gradients.cta}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.challengeBtn}
+                      >
+                        <Text style={styles.challengeText}>⚔️ Challenge</Text>
+                      </LinearGradient>
+                    </PressableScale>
+                  )}
+                </Card>
+              </PressableScale>
+            </Animated.View>
           );
         }}
       />
 
-      <Modal visible={!!challenging} transparent animationType="slide" onRequestClose={() => setChallenging(null)}>
+      <Modal visible={!!challenging} transparent animationType="fade" onRequestClose={() => setChallenging(null)}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setChallenging(null)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <Text style={styles.sheetTitle}>Challenge {challenging?.user.username}</Text>
-            <Button title="Casual — no wager" variant="secondary" onPress={() => challenge(challenging!, undefined)} />
-            {WAGER_TIERS.map((tier) => (
+          <Animated.View entering={SlideInDown.springify().damping(16)}>
+            <Pressable style={styles.sheet} onPress={() => {}}>
+              <DisplayText size={26} style={styles.sheetTitle}>
+                Challenge {challenging?.user.username}
+              </DisplayText>
               <Button
-                key={tier}
-                title={`Wager 🪙 ${tier}`}
+                title="Casual — no wager"
                 variant="secondary"
-                onPress={() => challenge(challenging!, tier)}
+                onPress={() => challenge(challenging!, undefined)}
               />
-            ))}
-            <Button title="Cancel" variant="ghost" onPress={() => setChallenging(null)} />
-          </Pressable>
+              <View style={styles.tierRow}>
+                {WAGER_TIERS.map((tier) => (
+                  <PressableScale
+                    key={tier}
+                    style={styles.tierChip}
+                    onPress={() => challenge(challenging!, tier)}
+                  >
+                    <DisplayText size={20} color={theme.accent}>
+                      🪙 {tier}
+                    </DisplayText>
+                  </PressableScale>
+                ))}
+              </View>
+              <Button title="Cancel" variant="ghost" onPress={() => setChallenging(null)} />
+            </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
     </View>
+  );
+}
+
+/** Status dot; when online, a soft green glow slowly pulses. */
+function OnlineDot({ online }: { online: boolean }) {
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    if (online) {
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 900 }),
+          withTiming(0, { duration: 900 })
+        ),
+        -1
+      );
+    } else {
+      pulse.value = withTiming(0, { duration: 200 });
+    }
+  }, [online, pulse]);
+  const animated = useAnimatedStyle(() => ({
+    shadowOpacity: 0.25 + pulse.value * 0.5,
+    transform: [{ scale: 1 + pulse.value * 0.12 }],
+  }));
+  return (
+    <Animated.View
+      style={[
+        styles.dot,
+        { backgroundColor: online ? theme.green : theme.textDim },
+        online ? theme.glow(theme.green, 8) : null,
+        online ? animated : null,
+      ]}
+    />
   );
 }
 
@@ -169,34 +235,36 @@ function SectionHeader({
   accepted: number;
 }) {
   let label: string | null = null;
-  if (index === 0 && incoming > 0) label = 'Friend requests';
-  else if (index === incoming && accepted > 0) label = 'Friends';
-  else if (index === incoming + accepted && items.length > incoming + accepted) label = 'Sent requests';
+  let color = theme.accent;
+  if (index === 0 && incoming > 0) {
+    label = 'Friend requests';
+  } else if (index === incoming && accepted > 0) {
+    label = 'Friends';
+    color = theme.blue;
+  } else if (index === incoming + accepted && items.length > incoming + accepted) {
+    label = 'Sent requests';
+    color = theme.textDim;
+  }
   if (!label) return null;
-  return <Text style={styles.section}>{label}</Text>;
+  return (
+    <View style={styles.section}>
+      <Tag color={color}>{label}</Tag>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg, padding: 16 },
   addRow: { flexDirection: 'row', alignItems: 'center' },
-  info: { color: theme.green, textAlign: 'center', marginVertical: 4 },
+  info: { color: theme.green, textAlign: 'center', marginVertical: 4, fontWeight: '700' },
   empty: { color: theme.textDim, textAlign: 'center', marginTop: 40, paddingHorizontal: 20 },
-  section: {
-    color: theme.textDim,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    fontSize: 12,
-    letterSpacing: 1,
-    marginTop: 16,
-    marginBottom: 6,
-  },
-  row: {
+  section: { marginTop: 14, marginBottom: 2 },
+  rowCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.panel,
-    borderRadius: 14,
     padding: 12,
     marginVertical: 4,
+    borderRadius: theme.radius.md,
   },
   dot: {
     position: 'absolute',
@@ -211,27 +279,24 @@ const styles = StyleSheet.create({
   name: { color: theme.text, fontWeight: '800', fontSize: 15 },
   meta: { color: theme.textDim, fontSize: 12, marginTop: 2 },
   rowButtons: { flexDirection: 'row', gap: 8 },
-  accept: {
+  circleBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: theme.green,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  acceptText: { color: '#fff', fontWeight: '900', fontSize: 16 },
+  accept: { backgroundColor: theme.green, ...theme.glow(theme.green, 10) },
+  acceptText: { color: theme.accentText, fontWeight: '900', fontSize: 16 },
   decline: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: theme.panelBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: theme.bgRaised,
+    borderWidth: 1.5,
+    borderColor: theme.danger,
   },
-  declineText: { color: theme.text, fontWeight: '900', fontSize: 16 },
+  declineText: { color: theme.danger, fontWeight: '900', fontSize: 16 },
+  challengeWrap: { borderRadius: theme.radius.sm, ...theme.glow('#FFB020', 10) },
   challengeBtn: {
-    backgroundColor: theme.accent,
-    borderRadius: 10,
+    borderRadius: theme.radius.sm,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -241,8 +306,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.panel,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderWidth: 1,
+    borderColor: theme.panelBorder,
     padding: 20,
     paddingBottom: 36,
   },
-  sheetTitle: { color: theme.text, fontSize: 18, fontWeight: '900', textAlign: 'center', marginBottom: 12 },
+  sheetTitle: { textAlign: 'center', marginBottom: 12 },
+  tierRow: { flexDirection: 'row', gap: 8, marginVertical: 6 },
+  tierChip: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: theme.radius.md,
+    borderWidth: 1.5,
+    borderColor: theme.accent,
+    backgroundColor: theme.bgRaised,
+  },
 });

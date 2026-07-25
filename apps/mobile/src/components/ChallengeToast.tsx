@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useFriendsStore } from '../stores/friendsStore';
 import { game } from '../socket/socket';
 import { Avatar } from './Avatar';
-import { Button } from './ui';
+import { Button, DisplayText } from './ui';
 import { theme } from '../theme';
 
 /** Slide-over shown anywhere in the main app when a friend challenges you. */
@@ -27,11 +28,14 @@ export function ChallengeToast() {
   }
 
   return (
-    <View style={styles.root}>
+    <Animated.View
+      entering={FadeInDown.springify().damping(16)}
+      style={[styles.root, theme.glow(theme.accent, 20)]}
+    >
       <View style={styles.row}>
         <Avatar avatar={challenge.from.avatar} size={40} />
         <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={styles.title}>{challenge.from.username} challenges you!</Text>
+          <DisplayText size={19}>{challenge.from.username} challenges you!</DisplayText>
           <Text style={styles.sub}>
             {challenge.wager > 0 ? `Wager: ${challenge.wager} coins` : 'Casual — no wager'}
           </Text>
@@ -46,7 +50,7 @@ export function ChallengeToast() {
           <Button title="Decline" variant="secondary" onPress={decline} />
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -57,17 +61,12 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     backgroundColor: theme.panel,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.accent,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
-  title: { color: theme.text, fontWeight: '800', fontSize: 15 },
   sub: { color: theme.textDim, marginTop: 2 },
   error: { color: theme.red, marginTop: 2 },
   buttons: { flexDirection: 'row', marginTop: 10 },

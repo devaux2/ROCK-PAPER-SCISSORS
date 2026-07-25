@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  withDelay,
   withSpring,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 import { EMOTES, type EmoteId } from '@rps/shared';
 import { theme } from '../theme';
+import { PressableScale } from './ui';
 
 const ITEM = 44;
 /** Two arcs so 8 emotes never overlap (44px targets stay tappable). */
@@ -25,13 +26,6 @@ const SWEEP_END = Math.PI * 0.53; // just short of straight-up
  */
 export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
   const [open, setOpen] = useState(false);
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = open
-      ? withSpring(1, { damping: 14, stiffness: 160 })
-      : withTiming(0, { duration: 140 });
-  }, [open, progress]);
 
   let index = 0;
   const items = RINGS.flatMap((ring) => {
@@ -41,6 +35,7 @@ export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
     return ringEmotes.map((emote, i) => ({
       emote,
       key: EMOTES[startIdx + i]!.id,
+      staggerIndex: startIdx + i,
       radius: ring.radius,
       angle:
         ring.count === 1
@@ -51,28 +46,28 @@ export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
 
   return (
     <View pointerEvents="box-none" style={styles.root}>
-      {items.map(({ emote, key, radius, angle }) => (
+      {items.map(({ emote, key, staggerIndex, radius, angle }) => (
         <WheelItem
           key={key}
           emoji={emote.emoji}
           label={emote.label}
           angle={angle}
           radius={radius}
-          progress={progress}
-          disabled={!open}
+          open={open}
+          staggerIndex={staggerIndex}
           onPress={() => {
             onEmote(emote.id);
             setOpen(false);
           }}
         />
       ))}
-      <Pressable
+      <PressableScale
         accessibilityLabel="Emote wheel"
-        style={styles.trigger}
+        style={[styles.trigger, theme.glow(theme.accent, 12)]}
         onPress={() => setOpen((o) => !o)}
       >
         <Text style={styles.triggerText}>{open ? '✕' : '😏'}</Text>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -82,18 +77,25 @@ function WheelItem({
   label,
   angle,
   radius,
-  progress,
-  disabled,
+  open,
+  staggerIndex,
   onPress,
 }: {
   emoji: string;
   label: string;
   angle: number;
   radius: number;
-  progress: SharedValue<number>;
-  disabled: boolean;
+  open: boolean;
+  staggerIndex: number;
   onPress: () => void;
 }) {
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = open
+      ? withDelay(staggerIndex * 20, withSpring(1, { damping: 14, stiffness: 160 }))
+      : withTiming(0, { duration: 140 });
+  }, [open, staggerIndex, progress]);
+
   const style = useAnimatedStyle(() => {
     const r = progress.value * radius;
     return {
@@ -108,11 +110,15 @@ function WheelItem({
   return (
     <Animated.View
       style={[styles.item, style]}
-      pointerEvents={disabled ? 'none' : 'auto'}
+      pointerEvents={open ? 'auto' : 'none'}
     >
-      <Pressable accessibilityLabel={`Emote: ${label}`} onPress={onPress} style={styles.itemButton}>
+      <PressableScale
+        accessibilityLabel={`Emote: ${label}`}
+        onPress={onPress}
+        style={styles.itemButton}
+      >
         <Text style={styles.itemEmoji}>{emoji}</Text>
-      </Pressable>
+      </PressableScale>
     </Animated.View>
   );
 }
@@ -149,8 +155,8 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: theme.panel,
-    borderWidth: 1,
-    borderColor: theme.panelBorder,
+    borderWidth: 1.5,
+    borderColor: theme.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -161,8 +167,8 @@ const styles = StyleSheet.create({
     height: ITEM,
     borderRadius: ITEM / 2,
     backgroundColor: theme.panel,
-    borderWidth: 1,
-    borderColor: theme.panelBorder,
+    borderWidth: 1.5,
+    borderColor: theme.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,31 +9,49 @@ import Animated, {
   withDelay,
   runOnJS,
   Easing,
+  FadeIn,
+  FadeInDown,
 } from 'react-native-reanimated';
 import type { Skin, MoveButtonProps, RevealSceneProps, MatchEndSceneProps } from '../types';
 import { fighterMeta } from './meta';
+import { theme } from '../../theme';
+import { PressableScale, DisplayText } from '../../components/ui';
 
 function MoveButton({ move, disabled, selected, onPress }: MoveButtonProps) {
   const m = fighterMeta.moves[move];
+  const pop = useSharedValue(0);
+  useEffect(() => {
+    pop.value = selected
+      ? withSpring(1, theme.springs.pop)
+      : withTiming(0, { duration: 160, easing: Easing.out(Easing.quad) });
+  }, [selected, pop]);
+  const animated = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + pop.value * 0.07 }],
+    shadowOpacity: pop.value * 0.65,
+  }));
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        styles.moveButton,
-        selected && styles.moveButtonSelected,
-        (pressed || disabled) && !selected && { opacity: 0.55 },
-      ]}
-    >
-      <Text style={styles.moveIcon}>{m.icon}</Text>
-      <Text style={styles.moveLabel}>{m.label.toUpperCase()}</Text>
-    </Pressable>
+    <PressableScale onPress={onPress} disabled={disabled} style={styles.moveButtonWrap}>
+      <Animated.View
+        style={[
+          styles.moveButton,
+          theme.glow(fighterMeta.theme.accent, 16),
+          { shadowOpacity: 0 },
+          selected && styles.moveButtonSelected,
+          disabled && !selected && { opacity: 0.55 },
+          animated,
+        ]}
+      >
+        <Text style={styles.moveIcon}>{m.icon}</Text>
+        <Text style={styles.moveLabel}>{m.label.toUpperCase()}</Text>
+      </Animated.View>
+    </PressableScale>
   );
 }
 
 /**
- * Side-view arena: "3·2·1·FIGHT!" flash, then both fighters lunge with
- * their attacks; the loser takes a hit-flash and staggers back.
+ * Side-view arena: "3·2·1·FIGHT!" snaps in hard, then both fighters lunge
+ * in an arc; hit-flash + screen shake on contact, a beat of hit-stop, then
+ * both settle back as the verdict lands.
  */
 function RevealScene({ myMove, oppMove, outcome, onDone }: RevealSceneProps) {
   const [countdown, setCountdown] = useState<'3' | '2' | '1' | 'FIGHT!' | null>('3');
@@ -41,74 +59,99 @@ function RevealScene({ myMove, oppMove, outcome, onDone }: RevealSceneProps) {
   const oppLunge = useSharedValue(0);
   const hitFlash = useSharedValue(0);
   const shakeX = useSharedValue(0);
+  const recoil = useSharedValue(0);
+  const cdSnap = useSharedValue(1);
   const done = useSharedValue(0);
 
   useEffect(() => {
+    if (countdown === null) return;
+    // Punchy flash: slam from oversized + transparent to rest in one snap.
+    cdSnap.value = 0;
+    cdSnap.value = withTiming(1, { duration: 130, easing: Easing.out(Easing.cubic) });
+  }, [countdown, cdSnap]);
+
+  useEffect(() => {
     const steps: Array<'3' | '2' | '1' | 'FIGHT!'> = ['3', '2', '1', 'FIGHT!'];
-    const timers = steps.map((step, i) =>
-      setTimeout(() => setCountdown(step), i * 350)
-    );
+    const timers = steps.map((step, i) => setTimeout(() => setCountdown(step), i * 300));
     const attack = setTimeout(() => {
       setCountdown(null);
-      // Both attack; springs carry them into contact.
-      myLunge.value = withSpring(1, { damping: 12, stiffness: 220 });
-      oppLunge.value = withSpring(1, { damping: 12, stiffness: 220 });
+      // Both attack; springs carry them into contact along a rising arc.
+      myLunge.value = withSpring(1, { damping: 11, stiffness: 260 });
+      oppLunge.value = withSpring(1, { damping: 11, stiffness: 260 });
       hitFlash.value = withDelay(
-        160,
-        withSequence(withTiming(1, { duration: 60 }), withTiming(0, { duration: 220 }))
+        150,
+        withSequence(withTiming(1, { duration: 50 }), withTiming(0, { duration: 200 }))
       );
       shakeX.value = withDelay(
-        160,
+        150,
         withSequence(
-          withTiming(8, { duration: 40 }),
-          withTiming(-7, { duration: 40 }),
-          withTiming(5, { duration: 40 }),
-          withTiming(0, { duration: 40 })
+          withTiming(10, { duration: 35 }),
+          withTiming(-9, { duration: 35 }),
+          withTiming(6, { duration: 35 }),
+          withTiming(-3, { duration: 35 }),
+          withTiming(0, { duration: 35 })
         )
       );
+      // Hit-stop: hold the impact pose for a beat, then settle back.
+      recoil.value = withDelay(460, withSpring(1, { damping: 14, stiffness: 190 }));
       done.value = withDelay(
-        1500,
+        1350,
         withTiming(1, { duration: 1 }, () => {
           runOnJS(onDone)();
         })
       );
-    }, steps.length * 350 + 250);
+    }, steps.length * 300 + 220);
     return () => {
       timers.forEach(clearTimeout);
       clearTimeout(attack);
     };
-  }, [myLunge, oppLunge, hitFlash, shakeX, done, onDone]);
+  }, [myLunge, oppLunge, hitFlash, shakeX, recoil, done, onDone]);
 
   const isBlockMine = myMove === 'C';
   const isBlockOpp = oppMove === 'C';
 
   const myStyle = useAnimatedStyle(() => ({
     transform: [
-      // Blocks hold their ground; attacks lunge across the arena.
-      { translateX: myLunge.value * (isBlockMine ? 12 : 62) },
-      { rotate: `${myLunge.value * (myMove === 'A' ? -24 : 0)}deg` },
-      { translateX: outcome === 'lose' ? hitFlash.value * -26 : 0 },
-      { scale: isBlockMine ? 1 + myLunge.value * 0.08 : 1 },
+      // Blocks hold their ground; attacks lunge across the arena in an arc.
+      { translateX: myLunge.value * (isBlockMine ? 14 : 78) - recoil.value * (isBlockMine ? 6 : 22) },
+      { translateY: isBlockMine ? 0 : -Math.sin(myLunge.value * Math.PI) * 20 },
+      { rotate: `${myLunge.value * (myMove === 'A' ? -26 : 0)}deg` },
+      { translateX: outcome === 'lose' ? hitFlash.value * -28 : 0 },
+      { scale: isBlockMine ? 1 + myLunge.value * 0.1 : 1 },
     ],
   }));
   const oppStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: -oppLunge.value * (isBlockOpp ? 12 : 62) },
-      { rotate: `${oppLunge.value * (oppMove === 'A' ? 24 : 0)}deg` },
-      { translateX: outcome === 'win' ? hitFlash.value * 26 : 0 },
-      { scale: isBlockOpp ? 1 + oppLunge.value * 0.08 : 1 },
+      { translateX: -oppLunge.value * (isBlockOpp ? 14 : 78) + recoil.value * (isBlockOpp ? 6 : 22) },
+      { translateY: isBlockOpp ? 0 : -Math.sin(oppLunge.value * Math.PI) * 20 },
+      { rotate: `${oppLunge.value * (oppMove === 'A' ? 26 : 0)}deg` },
+      { translateX: outcome === 'win' ? hitFlash.value * 28 : 0 },
+      { scale: isBlockOpp ? 1 + oppLunge.value * 0.1 : 1 },
     ],
   }));
   const flashStyle = useAnimatedStyle(() => ({ opacity: hitFlash.value * 0.85 }));
   const arenaShake = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
+  const cdStyle = useAnimatedStyle(() => ({
+    opacity: cdSnap.value,
+    transform: [{ scale: 2 - cdSnap.value }],
+  }));
   const verdictStyle = useAnimatedStyle(() => ({
-    opacity: done.value === 0 ? hitFlash.value === 0 && myLunge.value > 0.9 ? 1 : 0 : 1,
+    opacity: done.value === 0 ? (hitFlash.value === 0 && myLunge.value > 0.9 ? 1 : 0) : 1,
+    transform: [{ translateY: (1 - recoil.value) * 10 }],
   }));
 
   return (
     <View style={styles.revealRoot}>
       {countdown !== null && (
-        <Text style={[styles.countdown, countdown === 'FIGHT!' && styles.fight]}>{countdown}</Text>
+        <Animated.View style={[styles.countdownWrap, cdStyle]}>
+          <DisplayText
+            size={countdown === 'FIGHT!' ? 58 : 52}
+            color={countdown === 'FIGHT!' ? fighterMeta.theme.accent : fighterMeta.theme.text}
+            style={countdown === 'FIGHT!' ? theme.glow(fighterMeta.theme.accent, 20) : undefined}
+          >
+            {countdown}
+          </DisplayText>
+        </Animated.View>
       )}
       <Animated.View style={[styles.arena, arenaShake]}>
         <Animated.View style={[styles.fighterSide, myStyle]}>
@@ -122,50 +165,69 @@ function RevealScene({ myMove, oppMove, outcome, onDone }: RevealSceneProps) {
         <Animated.View pointerEvents="none" style={[styles.hitFlash, flashStyle]} />
       </Animated.View>
       {countdown === null && (
-        <Animated.Text
-          style={[
-            styles.verdict,
-            verdictStyle,
-            outcome === 'win' && { color: '#3FB950' },
-            outcome === 'lose' && { color: fighterMeta.theme.accent },
-          ]}
-        >
-          {outcome === 'win'
-            ? `${fighterMeta.moves[myMove].label.toUpperCase()} CONNECTS!`
-            : outcome === 'lose'
-              ? `${fighterMeta.moves[oppMove].label.toUpperCase()} CONNECTS!`
-              : 'CLASH! GO AGAIN!'}
-        </Animated.Text>
+        <Animated.View style={[styles.verdictWrap, verdictStyle]}>
+          <DisplayText
+            size={24}
+            color={
+              outcome === 'win'
+                ? theme.green
+                : outcome === 'lose'
+                  ? fighterMeta.theme.accent
+                  : fighterMeta.theme.text
+            }
+          >
+            {outcome === 'win'
+              ? `${fighterMeta.moves[myMove].label.toUpperCase()} CONNECTS!`
+              : outcome === 'lose'
+                ? `${fighterMeta.moves[oppMove].label.toUpperCase()} CONNECTS!`
+                : 'CLASH! GO AGAIN!'}
+          </DisplayText>
+        </Animated.View>
       )}
     </View>
   );
 }
 
 function MatchEndScene({ won, reason }: MatchEndSceneProps) {
-  const slide = useSharedValue(0);
-  useEffect(() => {
-    slide.value = withSpring(1, { damping: 10 });
-  }, [slide]);
-  const style = useAnimatedStyle(() => ({
-    opacity: slide.value,
-    transform: [{ translateY: (1 - slide.value) * 40 }],
-  }));
+  const title = won ? 'K.O. — YOU WIN' : 'K.O. — YOU LOSE';
+  const letters = title.split('');
   return (
-    <Animated.View style={[styles.endRoot, style]}>
-      <Text style={styles.endEmoji}>{won ? '🥇' : '🩹'}</Text>
-      <Text style={[styles.endTitle, { color: won ? fighterMeta.theme.accent : '#B98A8A' }]}>
-        {won ? 'K.O. — YOU WIN' : 'K.O. — YOU LOSE'}
-      </Text>
+    <View style={styles.endRoot}>
+      <Animated.Text entering={FadeIn.delay(letters.length * 45 + 200)} style={styles.endEmoji}>
+        {won ? '🥇' : '🩹'}
+      </Animated.Text>
+      <View
+        style={styles.koRow}
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={title}
+      >
+        {letters.map((ch, i) => (
+          <Animated.View
+            key={`${ch}-${i}`}
+            entering={FadeInDown.delay(i * 45).springify().damping(11).stiffness(320)}
+          >
+            <DisplayText
+              size={38}
+              color={won ? fighterMeta.theme.accent : fighterMeta.theme.textDim}
+              style={won ? theme.glow(fighterMeta.theme.accent, 16) : undefined}
+            >
+              {ch === ' ' ? ' ' : ch}
+            </DisplayText>
+          </Animated.View>
+        ))}
+      </View>
       {reason !== 'score' && (
-        <Text style={styles.endReason}>
+        <Animated.Text entering={FadeIn.delay(letters.length * 45 + 320)} style={styles.endReason}>
           {reason === 'forfeit' ? 'opponent threw in the towel' : 'opponent fled the arena'}
-        </Text>
+        </Animated.Text>
       )}
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  moveButtonWrap: { flex: 1, marginHorizontal: 6 },
   moveButton: {
     alignItems: 'center',
     backgroundColor: fighterMeta.theme.panel,
@@ -174,14 +236,12 @@ const styles = StyleSheet.create({
     borderColor: '#57272F',
     paddingVertical: 16,
     paddingHorizontal: 8,
-    flex: 1,
-    marginHorizontal: 6,
   },
   moveButtonSelected: {
     borderColor: fighterMeta.theme.accent,
     backgroundColor: '#4A1F27',
   },
-  moveIcon: { fontSize: 40 },
+  moveIcon: { fontSize: 48 },
   moveLabel: {
     color: fighterMeta.theme.text,
     marginTop: 6,
@@ -190,15 +250,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   revealRoot: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  countdown: {
-    position: 'absolute',
-    top: 20,
-    fontSize: 46,
-    fontWeight: '900',
-    color: fighterMeta.theme.text,
-    letterSpacing: 3,
-  },
-  fight: { color: fighterMeta.theme.accent, fontSize: 52 },
+  countdownWrap: { position: 'absolute', top: 16, alignItems: 'center' },
   arena: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -220,17 +272,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
   },
-  verdict: {
-    marginTop: 28,
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: 1,
-    color: fighterMeta.theme.text,
-  },
+  verdictWrap: { marginTop: 28, alignItems: 'center' },
   endRoot: { alignItems: 'center' },
-  endEmoji: { fontSize: 72 },
-  endTitle: { fontSize: 30, fontWeight: '900', letterSpacing: 2, marginTop: 8 },
-  endReason: { color: fighterMeta.theme.textDim, marginTop: 6 },
+  endEmoji: { fontSize: 76 },
+  koRow: { flexDirection: 'row', marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' },
+  endReason: { color: fighterMeta.theme.textDim, marginTop: 6, fontWeight: '600' },
 });
 
 export const fighterSkin: Skin = {

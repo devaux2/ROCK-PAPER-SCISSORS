@@ -1,9 +1,12 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSettingsStore } from '../src/stores/settingsStore';
 import { playSound } from '../src/sound';
 import { SKINS } from '../src/skins';
 import { MOVES } from '@rps/shared';
+import { Card, DisplayText, PressableScale, Tag } from '../src/components/ui';
 import { theme } from '../src/theme';
 
 export default function Settings() {
@@ -14,50 +17,69 @@ export default function Settings() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: 20 }}>
-      <View style={styles.soundRow}>
-        <View>
-          <Text style={styles.soundLabel}>Sound effects</Text>
-          <Text style={styles.hint}>Clicks, reveals, wins and losses.</Text>
-        </View>
-        <Switch
-          value={soundEnabled}
-          onValueChange={(v) => {
-            setSoundEnabled(v);
-            if (v) playSound('win');
-          }}
-          trackColor={{ true: theme.accent }}
-        />
-      </View>
-
-      <Text style={styles.label}>Game skin</Text>
-      <Text style={styles.hint}>
-        Same game, different flavor. Every skin plays identically — only the look, layout and
-        animations change.
-      </Text>
-      {Object.values(SKINS).map((skin) => (
-        <Pressable
-          key={skin.id}
-          onPress={() => setSkin(skin.id)}
-          style={[
-            styles.skinCard,
-            { backgroundColor: skin.theme.panel },
-            activeSkinId === skin.id && { borderColor: theme.accent },
-          ]}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.skinName, { color: skin.theme.text }]}>{skin.displayName}</Text>
-            <Text style={[styles.skinTagline, { color: skin.theme.textDim }]}>{skin.tagline}</Text>
-            <View style={styles.movePreview}>
-              {MOVES.map((m) => (
-                <Text key={m} style={styles.moveIcon}>
-                  {skin.moves[m].icon}
-                </Text>
-              ))}
-            </View>
+      <Animated.View entering={FadeInDown.springify()}>
+        <Card style={styles.soundRow}>
+          <View>
+            <Text style={styles.soundLabel}>Sound effects</Text>
+            <Text style={styles.hint}>Clicks, reveals, wins and losses.</Text>
           </View>
-          {activeSkinId === skin.id && <Text style={styles.activeBadge}>ACTIVE</Text>}
-        </Pressable>
-      ))}
+          <Switch
+            value={soundEnabled}
+            onValueChange={(v) => {
+              setSoundEnabled(v);
+              if (v) playSound('win');
+            }}
+            trackColor={{ true: theme.accent }}
+          />
+        </Card>
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(60).springify()}>
+        <Text style={styles.label}>Game skin</Text>
+        <Text style={styles.hint}>
+          Same game, different flavor. Every skin plays identically — only the look, layout and
+          animations change.
+        </Text>
+      </Animated.View>
+      {Object.values(SKINS).map((skin, i) => {
+        const active = activeSkinId === skin.id;
+        return (
+          <Animated.View key={skin.id} entering={FadeInDown.delay(120 + i * 60).springify()}>
+            <PressableScale
+              onPress={() => setSkin(skin.id)}
+              style={[
+                styles.skinCard,
+                { borderColor: active ? theme.accent : theme.panelBorder },
+                active && theme.glow(theme.accent, 14),
+              ]}
+            >
+              <LinearGradient
+                colors={[skin.theme.bg, skin.theme.panel]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.skinPoster}
+              >
+                <View style={{ flex: 1 }}>
+                  <DisplayText size={26} color={skin.theme.text}>
+                    {skin.displayName}
+                  </DisplayText>
+                  <Text style={[styles.skinTagline, { color: skin.theme.textDim }]}>
+                    {skin.tagline}
+                  </Text>
+                  <View style={styles.movePreview}>
+                    {MOVES.map((m) => (
+                      <Text key={m} style={styles.moveIcon}>
+                        {skin.moves[m].icon}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+                {active && <Tag>ACTIVE</Tag>}
+              </LinearGradient>
+            </PressableScale>
+          </Animated.View>
+        );
+      })}
     </ScrollView>
   );
 }
@@ -68,10 +90,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.panel,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
+    marginBottom: theme.space(3),
   },
   soundLabel: { color: theme.text, fontWeight: '800', fontSize: 16 },
   label: {
@@ -79,22 +98,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
     fontSize: 12,
-    letterSpacing: 1,
+    letterSpacing: 2,
     marginBottom: 6,
   },
   hint: { color: theme.textDim, marginBottom: 14 },
   skinCard: {
+    borderRadius: theme.radius.lg,
+    borderWidth: 2,
+    marginVertical: 6,
+    overflow: 'hidden',
+  },
+  skinPoster: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    padding: 16,
-    marginVertical: 6,
+    padding: theme.space(4),
+    borderRadius: theme.radius.lg - 2,
   },
-  skinName: { fontSize: 18, fontWeight: '900' },
   skinTagline: { marginTop: 2 },
-  movePreview: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  moveIcon: { fontSize: 26 },
-  activeBadge: { color: theme.accent, fontWeight: '900', letterSpacing: 1 },
+  movePreview: { flexDirection: 'row', gap: theme.space(3), marginTop: theme.space(2) },
+  moveIcon: { fontSize: 34 },
 });

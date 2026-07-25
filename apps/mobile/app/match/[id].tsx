@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { MOVES, ROUNDS_TO_WIN, type Move } from '@rps/shared';
 import { useMatchStore } from '../../src/stores/matchStore';
@@ -8,19 +17,58 @@ import { game } from '../../src/socket/socket';
 import { Avatar } from '../../src/components/Avatar';
 import { Countdown } from '../../src/components/Countdown';
 import { EmoteWheel, EmoteBubble } from '../../src/components/EmoteWheel';
-import { Button } from '../../src/components/ui';
+import { Button, DisplayText, StatNumber, Tag } from '../../src/components/ui';
+import { theme } from '../../src/theme';
 import { playSound } from '../../src/sound';
+
+/** One score pip — springs in with a pop + glow when it fills. */
+function Pip({ filled, accent }: { filled: boolean; accent: string }) {
+  const scale = useSharedValue(filled ? 1 : 0);
+  useEffect(() => {
+    scale.value = filled
+      ? withSpring(1, theme.springs.pop)
+      : withTiming(0, { duration: 140 });
+  }, [filled, scale]);
+  const animated = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: scale.value,
+  }));
+  return (
+    <View style={styles.pipSlot}>
+      <Animated.View
+        style={[styles.pipFill, { backgroundColor: accent }, theme.glow(accent, 8), animated]}
+      />
+    </View>
+  );
+}
 
 function Pips({ score, accent }: { score: number; accent: string }) {
   return (
     <View style={styles.pips}>
       {Array.from({ length: ROUNDS_TO_WIN }, (_, i) => (
-        <View
-          key={i}
-          style={[styles.pip, { backgroundColor: i < score ? accent : 'rgba(255,255,255,0.15)' }]}
-        />
+        <Pip key={i} filled={i < score} accent={accent} />
       ))}
     </View>
+  );
+}
+
+/** Text that softly pulses its opacity (waiting states, rematch offers). */
+function PulsingText({
+  children,
+  color,
+  style,
+}: {
+  children: React.ReactNode;
+  color: string;
+  style?: object;
+}) {
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(0.55, { duration: 750 }), -1, true);
+  }, [pulse]);
+  const animated = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  return (
+    <Animated.Text style={[styles.prompt, { color }, animated, style]}>{children}</Animated.Text>
   );
 }
 
@@ -100,34 +148,46 @@ export default function MatchScreen() {
   return (
     <View style={[styles.root, { backgroundColor: skin.theme.bg }]}>
       {/* Opponent header */}
-      <View style={[styles.header, { backgroundColor: skin.theme.panel }]}>
-        <Avatar avatar={opponent.avatar} size={44} />
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={[styles.oppName, { color: skin.theme.text }]}>{opponent.username}</Text>
-          <Text style={{ color: skin.theme.textDim, fontSize: 12 }}>
-            {opponent.isBot ? 'Practice bot' : `⚡ ${opponent.elo}`}
-            {mode === 'ranked' && wager > 0 ? `  ·  pot 🪙 ${wager * 2}` : ''}
-          </Text>
+      <Animated.View entering={FadeInDown.springify()} style={styles.header}>
+        <View style={styles.avatarRing}>
+          <Avatar avatar={opponent.avatar} size={44} />
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <DisplayText size={20}>{opponent.username}</DisplayText>
+          <View style={styles.subRow}>
+            <Text style={{ color: theme.textDim, fontSize: 12, fontWeight: '600' }}>
+              {opponent.isBot ? 'Practice bot' : `⚡ ${opponent.elo}`}
+            </Text>
+            {mode === 'ranked' && wager > 0 && (
+              <View style={styles.potChip}>
+                <Text style={styles.potChipText}>pot 🪙 {wager * 2}</Text>
+              </View>
+            )}
+          </View>
         </View>
         <Pips score={oppScore} accent={skin.theme.accent} />
         {incomingEmote && (
           <EmoteBubble emoteId={incomingEmote.emoteId} seq={incomingEmote.seq} />
         )}
-      </View>
+      </Animated.View>
 
       {/* Arena */}
       <View style={styles.arena}>
         {phase === 'choosing' && (
           <>
-            <Text style={[styles.roundLabel, { color: skin.theme.textDim }]}>
-              ROUND {roundNo}
-            </Text>
+            <View style={styles.roundTag}>
+              <Tag>ROUND {roundNo}</Tag>
+            </View>
             {deadline && <Countdown deadline={deadline} />}
-            <Text style={[styles.prompt, { color: skin.theme.text }]}>
-              {myMove
-                ? 'Locked in. Waiting for opponent…'
-                : `Pick your ${skin.id === 'fighter' ? 'strike' : 'throw'}!`}
-            </Text>
+            {myMove ? (
+              <PulsingText color={skin.theme.text}>
+                Locked in. Waiting for opponent…
+              </PulsingText>
+            ) : (
+              <Text style={[styles.prompt, { color: skin.theme.text }]}>
+                {`Pick your ${skin.id === 'fighter' ? 'strike' : 'throw'}!`}
+              </Text>
+            )}
           </>
         )}
         {phase === 'revealing' && lastResult && !revealDone && (
@@ -142,26 +202,32 @@ export default function MatchScreen() {
           <Text style={[styles.prompt, { color: skin.theme.textDim }]}>Next round…</Text>
         )}
         {phase === 'ended' && endResult && (
-          <View style={styles.endWrap}>
+          <Animated.View entering={FadeIn.duration(300)} style={styles.endWrap}>
             <skin.MatchEndScene won={endResult.youWon} reason={endResult.reason} />
             <View style={styles.endStats}>
               {mode === 'ranked' && (
                 <>
-                  <Text style={[styles.endStat, { color: endResult.coinsDelta >= 0 ? '#3FB950' : '#F85149' }]}>
-                    {endResult.coinsDelta >= 0 ? '+' : ''}
-                    {endResult.coinsDelta} 🪙
-                  </Text>
-                  <Text style={[styles.endStat, { color: endResult.eloDelta >= 0 ? '#3FB950' : '#F85149' }]}>
-                    {endResult.eloDelta >= 0 ? '+' : ''}
-                    {endResult.eloDelta} ELO
-                  </Text>
+                  <StatNumber
+                    value={endResult.coinsDelta}
+                    size={26}
+                    color={endResult.coinsDelta >= 0 ? theme.green : theme.danger}
+                    prefix={endResult.coinsDelta >= 0 ? '+' : ''}
+                    suffix=" 🪙"
+                  />
+                  <StatNumber
+                    value={endResult.eloDelta}
+                    size={26}
+                    color={endResult.eloDelta >= 0 ? theme.green : theme.danger}
+                    prefix={endResult.eloDelta >= 0 ? '+' : ''}
+                    suffix=" ELO"
+                  />
                 </>
               )}
             </View>
             {rematchOffered && !rematchSent && (
-              <Text style={[styles.rematchOffer, { color: skin.theme.accent }]}>
+              <PulsingText color={theme.accent} style={styles.rematchOffer}>
                 {opponent.username} wants a rematch!
-              </Text>
+              </PulsingText>
             )}
             {rematchSent && (
               <Text style={[styles.rematchOffer, { color: skin.theme.textDim }]}>
@@ -169,11 +235,14 @@ export default function MatchScreen() {
               </Text>
             )}
             {rematchError && <Text style={styles.rematchError}>{rematchError}</Text>}
-            <View style={styles.endButtons}>
+            <Animated.View
+              entering={FadeInDown.delay(120).springify()}
+              style={styles.endButtons}
+            >
               <Button title="Rematch" onPress={requestRematch} disabled={rematchSent} />
               <Button title="Back to menu" variant="secondary" onPress={leave} />
-            </View>
-          </View>
+            </Animated.View>
+          </Animated.View>
         )}
       </View>
 
@@ -204,7 +273,8 @@ export default function MatchScreen() {
         </View>
       )}
 
-      {(phase === 'choosing' || phase === 'revealing') && !opponent.isBot && (
+      {/* Practice mode included — taunting the bot is free therapy. */}
+      {(phase === 'choosing' || phase === 'revealing') && (
         <EmoteWheel onEmote={(id) => matchId && game.sendEmote(matchId, id)} />
       )}
     </View>
@@ -219,12 +289,43 @@ const styles = StyleSheet.create({
     paddingTop: 54,
     paddingBottom: 12,
     paddingHorizontal: 16,
+    backgroundColor: theme.bgRaised,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.panelBorder,
   },
-  oppName: { fontWeight: '900', fontSize: 16 },
+  avatarRing: {
+    borderWidth: 2,
+    borderColor: theme.accent,
+    borderRadius: theme.radius.pill,
+    padding: 2,
+    ...theme.glow(theme.accent, 10),
+  },
+  subRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  potChip: {
+    borderWidth: 1,
+    borderColor: theme.accent,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+    backgroundColor: theme.panel,
+  },
+  potChipText: {
+    color: theme.accent,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   pips: { flexDirection: 'row', gap: 5 },
-  pip: { width: 12, height: 12, borderRadius: 6 },
+  pipSlot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    overflow: 'visible',
+  },
+  pipFill: { width: 12, height: 12, borderRadius: 6 },
   arena: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
-  roundLabel: { fontWeight: '900', letterSpacing: 3, marginBottom: 6 },
+  roundTag: { alignItems: 'center', marginBottom: 10 },
   prompt: { fontSize: 17, fontWeight: '700', marginTop: 14, textAlign: 'center' },
   footer: { paddingHorizontal: 12, paddingBottom: 30 },
   moveRow: { flexDirection: 'row' },
@@ -237,8 +338,7 @@ const styles = StyleSheet.create({
   },
   endWrap: { alignItems: 'center', width: '100%' },
   endStats: { flexDirection: 'row', gap: 20, marginTop: 14 },
-  endStat: { fontSize: 20, fontWeight: '900' },
-  rematchOffer: { marginTop: 14, fontWeight: '800' },
-  rematchError: { marginTop: 8, color: '#F85149' },
+  rematchOffer: { marginTop: 14, fontWeight: '800', fontSize: 15 },
+  rematchError: { marginTop: 8, color: theme.danger, fontWeight: '700' },
   endButtons: { width: '100%', marginTop: 18, paddingHorizontal: 24 },
 });

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
 import { Link } from 'expo-router';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { STARTING_COINS } from '@rps/shared';
 import { useAuthStore } from '../../src/stores/authStore';
-import { Button, Input, ErrorText } from '../../src/components/ui';
+import { Button, Input, ErrorText, DisplayText, PressableScale, Tag } from '../../src/components/ui';
 import { theme } from '../../src/theme';
 
 export default function Signup() {
@@ -30,11 +31,20 @@ export default function Signup() {
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>Join the arena</Text>
-      <Text style={styles.subtitle}>
-        Start with {STARTING_COINS} coins. Wager them in ranked, or play casual for free.
-      </Text>
-      <View style={styles.form}>
+      <Animated.View entering={FadeInDown.springify()} style={styles.tagWrap}>
+        <Tag>New challenger</Tag>
+      </Animated.View>
+      <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.titleWrap}>
+        <DisplayText size={44} color={theme.text} style={styles.title}>
+          Join the arena
+        </DisplayText>
+      </Animated.View>
+      <Animated.View entering={FadeInDown.delay(120).springify()}>
+        <Text style={styles.subtitle}>
+          Start with {STARTING_COINS} coins. Wager them in ranked, or play casual for free.
+        </Text>
+      </Animated.View>
+      <Animated.View entering={FadeInDown.delay(180).springify()} style={styles.form}>
         <Input placeholder="Username (3–20 chars)" value={username} onChangeText={setUsername} />
         <Input
           placeholder="Password (6+ chars)"
@@ -45,22 +55,38 @@ export default function Signup() {
         <ErrorText error={error} />
         <Button
           title="Create account"
+          size="lg"
           onPress={submit}
           loading={busy}
           disabled={!username || !password}
         />
         <Link href="/(auth)/login" asChild>
-          <Text style={styles.link}>Already have an account? Log in</Text>
+          <PressableScale>
+            <Text style={styles.link}>Already have an account? Log in</Text>
+          </PressableScale>
         </Link>
-      </View>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: theme.bg },
-  title: { fontSize: 30, fontWeight: '900', color: theme.text, textAlign: 'center' },
-  subtitle: { color: theme.textDim, textAlign: 'center', marginTop: 8, marginBottom: 24 },
-  form: { marginTop: 8 },
+  tagWrap: { flexDirection: 'row', justifyContent: 'center', marginBottom: theme.space(3) },
+  titleWrap: { alignItems: 'center' },
+  title: {
+    textAlign: 'center',
+    textShadowColor: theme.accent,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
+  },
+  subtitle: {
+    color: theme.textDim,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+    fontWeight: '600',
+  },
+  form: { marginTop: theme.space(2) },
   link: { color: theme.blue, textAlign: 'center', marginTop: 16, fontWeight: '600' },
 });
