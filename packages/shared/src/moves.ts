@@ -27,5 +27,8 @@ export function randomMove(rng: () => number = Math.random): Move {
   return MOVES[idx]!;
 }
 
-/** Round wins needed to take a best-of-3 match. Draw rounds replay. */
-export const ROUNDS_TO_WIN = 2;
+/**
+ * Round wins needed to take a match. 1 = sudden death: one throw decides
+ * it, and drawn throws replay until someone lands a hit.
+ */
+export const ROUNDS_TO_WIN = 1;

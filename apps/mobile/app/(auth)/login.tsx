@@ -62,7 +62,7 @@ export default function Login() {
         </DisplayText>
       </Animated.View>
       <Animated.View entering={FadeInDown.delay(120).springify()}>
-        <Text style={styles.subtitle}>Best-of-3. Winner takes the pot.</Text>
+        <Text style={styles.subtitle}>One throw. Winner takes the pot.</Text>
       </Animated.View>
       <Animated.View entering={FadeInDown.delay(180).springify()} style={styles.form}>
         <Input placeholder="Username" value={username} onChangeText={setUsername} />

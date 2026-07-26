@@ -1,12 +1,12 @@
 # THROWDOWN — Rock Paper Scissors with stakes
 
-A **mobile-first web game** where players face off in best-of-3 rock-paper-scissors matches, wagering **simulated coins** in ranked play. One Node.js process serves everything — the game client, the REST API, and the realtime match server. Players just open a URL on their phone (and can add it to their home screen as an app).
+A **mobile-first web game** where players face off in sudden-death rock-paper-scissors duels — one throw decides it (draws replay) — wagering **simulated coins** in ranked play. One Node.js process serves everything — the game client, the REST API, and the realtime match server. Players just open a URL on their phone (and can add it to their home screen as an app).
 
 Built with React Native + Expo (via react-native-web), so the same codebase still runs as a native iOS/Android app through Expo Go — but the web is the primary way to play.
 
 ## Features
 
-- **Realtime PvP** — Socket.io matches with hidden simultaneous moves, 10s round timers, disconnect grace + reconnect resync, AFK forfeit.
+- **Realtime PvP** — Socket.io matches with hidden simultaneous moves, 4s round timers, disconnect grace + reconnect resync, AFK forfeit.
 - **Ranked & casual matchmaking** — ranked queues per wager tier (10/50/100/500 coins) pair players by Elo proximity (tolerance widens while you wait); casual is free and unrated.
 - **Simulated economy** — 500 coins at signup, matched bets escrowed on queue join, winner takes the pot, daily top-up when you're broke. Every coin movement is an auditable transaction row. No real money anywhere.
 - **Elo rating + leaderboards** — K=32 Elo on ranked matches; weekly & monthly boards ranked by rating gained.

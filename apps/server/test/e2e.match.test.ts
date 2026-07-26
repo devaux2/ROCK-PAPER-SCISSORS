@@ -2,8 +2,9 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Database from 'better-sqlite3';
 import { readFileSync } from 'node:fs';
 import { io as ioc, type Socket } from 'socket.io-client';
-import type {
-  ClientToServerEvents,
+import {
+  ROUNDS_TO_WIN,
+  type ClientToServerEvents,
   ServerToClientEvents,
   MatchStartPayload,
   RoundStartPayload,
@@ -128,12 +129,12 @@ describe('e2e: real socket clients play ranked matches', () => {
       const result = (await winner.results.next()) as RoundResultPayload;
       await loser.results.next();
       expect(result.outcome).toBe('win');
-      if (result.scores.p1 >= 2 || result.scores.p2 >= 2) break;
+      if (result.scores.p1 >= ROUNDS_TO_WIN || result.scores.p2 >= ROUNDS_TO_WIN) break;
     }
     return { winnerEnd: await winner.ends.next(), loserEnd: await loser.ends.next() };
   }
 
-  it('queue -> escrow -> best-of-3 -> payout + elo -> rematch, verified over REST', async () => {
+  it('queue -> escrow -> sudden death -> payout + elo -> rematch, verified over REST', async () => {
     const ann = await connect('ann');
     const ben = await connect('ben');
 
@@ -220,7 +221,7 @@ describe('e2e: real socket clients play ranked matches', () => {
     expect(annHistory[1].coinsDelta).toBe(50);
     expect(annHistory[1].eloDelta).toBe(16);
     expect(annHistory[1].mode).toBe('ranked');
-    expect(annHistory[1].myScore).toBe(2);
+    expect(annHistory[1].myScore).toBe(ROUNDS_TO_WIN);
   }, 60_000);
 
   it('refunds escrow on queue leave, rejects invalid tiers and unaffordable wagers', async () => {
