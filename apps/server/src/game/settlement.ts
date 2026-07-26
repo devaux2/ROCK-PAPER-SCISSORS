@@ -1,4 +1,3 @@
-import { eloUpdate } from '@rps/shared';
 import type { AppContext } from '../context';
 import type { MatchResult, SeatSettlement } from './MatchEngine';
 import { BOT_USER_ID } from './bot';
@@ -22,7 +21,8 @@ export function settleMatch(ctx: AppContext, result: MatchResult): { p1: SeatSet
     ctx.matches.complete(
       result.matchId,
       winnerId === BOT_USER_ID ? null : winnerId,
-      result.reason,
+      // The wire distinguishes a no-show; the ledger just records a forfeit.
+      result.reason === 'no_play' ? 'forfeit' : result.reason,
       result.scores.p1,
       result.scores.p2,
       result.rounds.map((r) => ({
@@ -48,24 +48,14 @@ export function settleMatch(ctx: AppContext, result: MatchResult): { p1: SeatSet
         // Both wagers were escrowed up front; winner takes the pot.
         ctx.transactions.apply(winner.userId, result.wager * 2, 'payout', result.matchId);
 
-        const winnerRow = ctx.users.byId(winner.userId)!;
-        const loserRow = ctx.users.byId(loser.userId)!;
-        const elo = eloUpdate(winnerRow.elo, loserRow.elo);
-        ctx.matches.updateElo(winner.userId, result.matchId, elo.winnerDelta, elo.winnerNew);
-        ctx.matches.updateElo(loser.userId, result.matchId, elo.loserDelta, elo.loserNew);
-
         settlement[result.winnerSeat] = {
-          eloDelta: elo.winnerDelta,
           coinsDelta: result.wager,
-          newElo: elo.winnerNew,
           newCoins: ctx.users.byId(winner.userId)!.coins,
         };
         const loserSeat = result.winnerSeat === 'p1' ? 'p2' : 'p1';
         settlement[loserSeat] = {
-          eloDelta: elo.loserDelta,
           coinsDelta: -result.wager,
-          newElo: elo.loserNew,
-          newCoins: loserRow.coins,
+          newCoins: ctx.users.byId(loser.userId)!.coins,
         };
       } else {
         settlement.p1 = blankFor(ctx, p1.userId);
@@ -87,9 +77,7 @@ export function settleMatch(ctx: AppContext, result: MatchResult): { p1: SeatSet
 function blankFor(ctx: AppContext, userId: number): SeatSettlement {
   const row = userId === BOT_USER_ID ? undefined : ctx.users.byId(userId);
   return {
-    eloDelta: 0,
     coinsDelta: 0,
-    newElo: row?.elo ?? 0,
     newCoins: row?.coins ?? 0,
   };
 }

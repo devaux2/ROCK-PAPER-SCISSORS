@@ -1,6 +1,6 @@
 {
-  "name": "Throwdown — Rock Paper Scissors",
-  "short_name": "Throwdown",
+  "name": "RPS — Rock Paper Scissors",
+  "short_name": "RPS",
   "description": "Best-of-3 rock paper scissors with coin wagers, friends and leaderboards.",
   "start_url": "/",
   "display": "standalone",

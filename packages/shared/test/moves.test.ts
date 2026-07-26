@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { beats, isMove, randomMove, MOVES, type Move } from '../src/moves';
-import { eloUpdate, expectedScore } from '../src/elo';
 import { isWagerTier } from '../src/economy';
 import { isEmoteId } from '../src/emotes';
 
@@ -40,28 +39,6 @@ describe('isMove / randomMove', () => {
     expect(randomMove(() => 0)).toBe('A');
     expect(randomMove(() => 0.5)).toBe('B');
     expect(randomMove(() => 0.99)).toBe('C');
-  });
-});
-
-describe('elo', () => {
-  it('equal ratings: winner gains K/2 = 16', () => {
-    const r = eloUpdate(1000, 1000);
-    expect(r.winnerDelta).toBe(16);
-    expect(r.loserDelta).toBe(-16);
-    expect(r.winnerNew).toBe(1016);
-    expect(r.loserNew).toBe(984);
-  });
-  it('underdog win pays more than favourite win', () => {
-    const underdog = eloUpdate(900, 1100);
-    const favourite = eloUpdate(1100, 900);
-    expect(underdog.winnerDelta).toBeGreaterThan(favourite.winnerDelta);
-  });
-  it('deltas are symmetric (zero-sum)', () => {
-    const r = eloUpdate(1234, 987);
-    expect(r.winnerDelta + r.loserDelta).toBe(0);
-  });
-  it('expectedScore is complementary', () => {
-    expect(expectedScore(1000, 1200) + expectedScore(1200, 1000)).toBeCloseTo(1);
   });
 });
 

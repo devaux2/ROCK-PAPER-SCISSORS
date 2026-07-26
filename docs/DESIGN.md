@@ -1,4 +1,4 @@
-# Throwdown visual language — "ARENA" pass
+# RPS visual language — "ARENA" pass
 
 High-energy, bold, arcade-versus. Dark arena base, hot gold star of the
 show, punchy display type, springy motion everywhere. Every screen should
@@ -61,11 +61,11 @@ feel like the seconds before a fight, never like a settings dialog.
     the wager chip (accessibilityLabel "Wager selector"); stake sheet rows
     contain "Casual" and "🪙 1/5/10/20/50/100/1000"
   - Match: move labels per skin unchanged (Rock/Paper/Scissors,
-    KICK/PUNCH/BLOCK, Fire/Water/Leaf); "Forfeit"; accessibility labels
-    "Emote wheel" and "Emote: <label>"; classic end shows VICTORY/DEFEAT;
-    fighter end contains "K.O."; spell end "ARCANE VICTORY"/"SPELL BROKEN"
-  - Settings: skin cards show "Rock Paper Scissors", "Kick Block Punch",
-    "Spell Duel"; sound toggle stays
+    KICK/PUNCH/BLOCK); "Forfeit"; accessibility labels "Emote wheel" and
+    "Emote: <label>" (the wheel lives on the END screen, not mid-round);
+    classic end shows VICTORY/DEFEAT; fighter end contains "K.O."
+  - Settings: skin cards show "Rock Paper Scissors" and "Kick Block Punch";
+    sound + music toggles stay
 - `tsc --noEmit` must stay clean; no new dependencies; imports only from
   existing packages (reanimated, expo-linear-gradient, gesture-handler,
   @rps/shared, ui.tsx primitives).

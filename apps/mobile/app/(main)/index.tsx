@@ -97,18 +97,15 @@ export default function Home() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         <Animated.View entering={FadeInDown.springify()}>
           <DisplayText
-            size={40}
+            size={48}
             color={theme.accent}
             style={[styles.logo, theme.textGlow(theme.accent, 18)]}
           >
-            Throwdown
+            RPS
           </DisplayText>
           <View style={styles.chipRow}>
             <View style={styles.chip}>
               <StatNumber value={coins} size={20} color={theme.accent} prefix="🪙 " />
-            </View>
-            <View style={styles.chip}>
-              <StatNumber value={user?.elo ?? 1000} size={20} color={theme.blue} suffix=" ELO" prefix="⚡ " />
             </View>
           </View>
         </Animated.View>
@@ -128,13 +125,21 @@ export default function Home() {
         {/* The arena floor: one giant PLAY */}
         <Animated.View entering={FadeInDown.delay(120).springify()} style={styles.playZone}>
           <PlayButton disabled={!affordable} onPress={play} />
-          <Text style={styles.playHint}>
-            {wager === 0
-              ? 'Casual — nothing at stake'
-              : affordable
-                ? `Winner takes 🪙 ${wager * 2}`
-                : `You need 🪙 ${wager} for this bracket`}
-          </Text>
+          {wager === 0 ? (
+            <Text style={styles.playHint}>Casual — nothing at stake</Text>
+          ) : affordable ? (
+            <DisplayText
+              size={26}
+              color={theme.green}
+              style={[{ textAlign: 'center', marginTop: 12 }, theme.textGlow(theme.green, 10)]}
+            >
+              Winner takes 🪙 {wager * 2}
+            </DisplayText>
+          ) : (
+            <Text style={[styles.playHint, { color: theme.danger }]}>
+              You need 🪙 {wager} for this bracket
+            </Text>
+          )}
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(180).springify()} style={styles.secondaryRow}>
@@ -143,26 +148,37 @@ export default function Home() {
         </Animated.View>
       </ScrollView>
 
-      {/* Wager selector — bottom right, always in thumb's reach */}
+      {/* Stake selector — bottom right, big enough to see from orbit */}
       <PressableScale
         accessibilityLabel="Wager selector"
-        style={[styles.wagerChip, wager > 0 && styles.wagerChipActive, wager > 0 && theme.glow(theme.accent, 12)]}
+        style={styles.wagerDock}
         onPress={() => {
           playSound('click');
           setWagerSheet(true);
         }}
       >
-        <Text
-          style={[
-            styles.wagerChipLabel,
-            { color: wager > 0 ? 'rgba(0,0,0,0.5)' : theme.textDim },
-          ]}
-        >
-          STAKE
-        </Text>
-        <DisplayText size={22} color={wager === 0 ? theme.textDim : theme.accentText}>
-          {wager === 0 ? 'Casual' : `🪙 ${wager}`}
-        </DisplayText>
+        {wager > 0 ? (
+          <LinearGradient
+            colors={theme.gradients.cta}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.wagerCard, theme.glow('#FFB020', 18)]}
+          >
+            <Text style={[styles.wagerLabel, { color: 'rgba(0,0,0,0.55)' }]}>YOUR STAKE</Text>
+            <DisplayText size={40} color={theme.accentText}>
+              🪙 {wager}
+            </DisplayText>
+            <Text style={styles.wagerWin}>WIN 🪙 {wager * 2}</Text>
+          </LinearGradient>
+        ) : (
+          <View style={[styles.wagerCard, styles.wagerCardCasual]}>
+            <Text style={[styles.wagerLabel, { color: theme.textDim }]}>YOUR STAKE</Text>
+            <DisplayText size={30} color={theme.text}>
+              Casual
+            </DisplayText>
+            <Text style={[styles.wagerWin, { color: theme.accent }]}>TAP TO BET</Text>
+          </View>
+        )}
       </PressableScale>
 
       <Modal visible={wagerSheet} transparent animationType="none" onRequestClose={() => setWagerSheet(false)}>
@@ -175,7 +191,7 @@ export default function Home() {
             </DisplayText>
             <TierRow
               label="Casual"
-              sub="no wager · no elo"
+              sub="no wager · just pride"
               selected={wager === 0}
               affordable
               onPress={() => {
@@ -216,16 +232,18 @@ function PlayButton({ disabled, onPress }: { disabled: boolean; onPress: () => v
     );
   }, [pulse]);
   const animated = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  // The universal "wanna go?" gesture: a fist held out, ready to throw.
   return (
-    <Animated.View style={[animated, { width: '100%' }]}>
+    <Animated.View style={[animated, { alignItems: 'center' }]}>
       <PressableScale onPress={onPress} disabled={disabled} style={disabled && { opacity: 0.5 }}>
         <LinearGradient
           colors={theme.gradients.cta}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.playButton, !disabled && theme.glow('#FFB020', 22)]}
+          style={[styles.playButton, !disabled && theme.glow('#FFB020', 26)]}
         >
-          <DisplayText size={56} color={theme.accentText}>
+          <Text style={styles.playFist}>✊</Text>
+          <DisplayText size={40} color={theme.accentText}>
             Play
           </DisplayText>
         </LinearGradient>
@@ -280,11 +298,13 @@ const styles = StyleSheet.create({
   topupMsg: { color: theme.green, marginTop: 6, textAlign: 'center', fontWeight: '700' },
   playZone: { flex: 1, justifyContent: 'center', paddingVertical: theme.space(8) },
   playButton: {
-    minHeight: 130,
-    borderRadius: 26,
+    width: 210,
+    height: 210,
+    borderRadius: 105,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  playFist: { fontSize: 84, marginBottom: -2 },
   playHint: {
     color: theme.textDim,
     textAlign: 'center',
@@ -292,24 +312,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   secondaryRow: { marginTop: theme.space(2) },
-  wagerChip: {
+  wagerDock: {
     position: 'absolute',
-    right: 18,
-    bottom: 20,
-    backgroundColor: theme.bgRaised,
-    borderWidth: 1.5,
-    borderColor: theme.panelBorder,
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    alignItems: 'center',
-    minWidth: 96,
+    right: 16,
+    bottom: 16,
   },
-  wagerChipActive: { backgroundColor: theme.accent, borderColor: theme.accentHot },
-  wagerChipLabel: {
-    fontSize: 9,
+  wagerCard: {
+    minWidth: 150,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  wagerCardCasual: {
+    backgroundColor: theme.bgRaised,
+    borderWidth: 2,
+    borderColor: theme.accent,
+  },
+  wagerLabel: {
+    fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 2.5,
+  },
+  wagerWin: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    color: 'rgba(0,0,0,0.6)',
+    marginTop: 2,
   },
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)' },
   sheet: {

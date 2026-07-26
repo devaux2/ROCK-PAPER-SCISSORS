@@ -1,6 +1,6 @@
 import type { DB } from '../db';
 import type { UserProfile, PublicProfile } from '@rps/shared';
-import { STARTING_COINS, ELO_START } from '@rps/shared';
+import { STARTING_COINS } from '@rps/shared';
 
 export interface UserRow {
   id: number;
@@ -24,7 +24,6 @@ export function toProfile(row: UserRow): UserProfile {
     bio: row.bio,
     avatar: row.avatar,
     coins: row.coins,
-    elo: row.elo,
     wins: row.wins,
     losses: row.losses,
     winRate: played === 0 ? 0 : row.wins / played,
@@ -42,8 +41,8 @@ export class UsersRepo {
 
   create(username: string, passwordHash: string): UserRow {
     const info = this.db
-      .prepare('INSERT INTO users (username, password_hash, coins, elo) VALUES (?, ?, ?, ?)')
-      .run(username, passwordHash, STARTING_COINS, ELO_START);
+      .prepare('INSERT INTO users (username, password_hash, coins) VALUES (?, ?, ?)')
+      .run(username, passwordHash, STARTING_COINS);
     const user = this.byId(Number(info.lastInsertRowid))!;
     this.db
       .prepare(

@@ -156,29 +156,25 @@ describe('e2e: real socket clients play ranked matches', () => {
     expect(winnerEnd.youWon).toBe(true);
     expect(winnerEnd.reason).toBe('score');
     expect(winnerEnd.coinsDelta).toBe(50);
-    expect(winnerEnd.eloDelta).toBe(16);
     expect(winnerEnd.newCoins).toBe(550);
     expect(loserEnd.youWon).toBe(false);
     expect(loserEnd.coinsDelta).toBe(-50);
-    expect(loserEnd.eloDelta).toBe(-16);
 
     const annProfile = await me('ann');
     const benProfile = await me('ben');
     expect(annProfile.coins).toBe(550);
-    expect(annProfile.elo).toBe(1016);
     expect(annProfile.wins).toBe(1);
     expect(annProfile.winRate).toBe(1);
     expect(benProfile.coins).toBe(450);
-    expect(benProfile.elo).toBe(984);
     expect(benProfile.losses).toBe(1);
 
     const lb = await fetch(`${base}/leaderboards?window=weekly`, {
       headers: { authorization: `Bearer ${tokens.ann}` },
     }).then((r) => r.json());
     expect(lb[0].user.username).toBe('ann');
-    expect(lb[0].ratingGained).toBe(16);
+    expect(lb[0].coinsWon).toBe(50);
     expect(lb[1].user.username).toBe('ben');
-    expect(lb[1].ratingGained).toBe(-16);
+    expect(lb[1].coinsWon).toBe(-50);
 
     const history = await fetch(`${base}/economy/history`, {
       headers: { authorization: `Bearer ${tokens.ann}` },
@@ -206,8 +202,6 @@ describe('e2e: real socket clients play ranked matches', () => {
     const benAfter = await me('ben');
     expect(annAfter.coins).toBe(500);
     expect(benAfter.coins).toBe(500);
-    // Ben was behind, so winning back pays slightly more than 16.
-    expect(benAfter.elo).toBeGreaterThan(984);
 
     // Match history: newest first, correct outcome/deltas per player.
     const annHistory = await fetch(`${base}/matches/history`, {
@@ -219,7 +213,6 @@ describe('e2e: real socket clients play ranked matches', () => {
     expect(annHistory[0].opponent.username).toBe('ben');
     expect(annHistory[1].won).toBe(true); // first match
     expect(annHistory[1].coinsDelta).toBe(50);
-    expect(annHistory[1].eloDelta).toBe(16);
     expect(annHistory[1].mode).toBe('ranked');
     expect(annHistory[1].myScore).toBe(ROUNDS_TO_WIN);
   }, 60_000);
@@ -260,11 +253,9 @@ describe('e2e: real socket clients play ranked matches', () => {
     }
     const finalEnd = await endP;
     expect(finalEnd.coinsDelta).toBe(0);
-    expect(finalEnd.eloDelta).toBe(0);
 
     const profile = await me('pauper');
     expect(profile.coins).toBe(500);
-    expect(profile.elo).toBe(1000);
     expect(profile.wins + profile.losses).toBe(0);
   }, 60_000);
 });

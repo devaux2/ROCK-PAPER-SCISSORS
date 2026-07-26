@@ -31,7 +31,7 @@ export function connectSocket(baseUrl: string, token: string): GameSocket {
   socket.on('round:result', (p) => match().onRoundResult(p));
   socket.on('match:end', (p) => {
     match().onMatchEnd(p);
-    // Coins/Elo changed — refresh the cached profile.
+    // Coins changed — refresh the cached profile.
     void useAuthStore.getState().refreshMe();
   });
   socket.on('match:state', (p) => match().onResync(p));

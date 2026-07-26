@@ -1,4 +1,4 @@
-# THROWDOWN — Rock Paper Scissors with stakes
+# RPS — Rock Paper Scissors with stakes
 
 A **mobile-first web game** where players face off in sudden-death rock-paper-scissors duels — one throw decides it (draws replay) — wagering **simulated coins** in ranked play. One Node.js process serves everything — the game client, the REST API, and the realtime match server. Players just open a URL on their phone (and can add it to their home screen as an app).
 
@@ -7,16 +7,15 @@ Built with React Native + Expo (via react-native-web), so the same codebase stil
 ## Features
 
 - **Realtime PvP** — Socket.io matches with hidden simultaneous moves, 4s round timers, disconnect grace + reconnect resync, AFK forfeit.
-- **Ranked & casual matchmaking** — ranked queues per wager tier (10/50/100/500 coins) pair players by Elo proximity (tolerance widens while you wait); casual is free and unrated.
+- **Ranked & casual matchmaking** — ranked queues per wager tier (1/5/10/20/50/100/1000 coins) pair players by Elo proximity (tolerance widens while you wait); casual is free and unrated.
 - **Simulated economy** — 500 coins at signup, matched bets escrowed on queue join, winner takes the pot, daily top-up when you're broke. Every coin movement is an auditable transaction row. No real money anywhere.
-- **Elo rating + leaderboards** — K=32 Elo on ranked matches; weekly & monthly boards ranked by rating gained.
+- **Winnings leaderboards** — weekly & monthly boards ranked by net coins won; Elo (K=32) still drives matchmaking and shows as secondary info.
 - **Profiles & friends** — win rate, bio, avatars (12 built-in or a photo); friend requests by username, online presence, direct challenges with optional wagers, post-match rematches.
-- **Emote wheel** — radial two-arc taunt wheel in-match, rate-limited server-side.
+- **Emote wheel** — radial taunt wheel on the result screen, rate-limited server-side.
 - **Match history** — recent matches with opponent, score, coin and Elo deltas.
-- **Three visual skins, one mechanic** — game logic only knows moves `A/B/C` (`A>C>B>A`); skins are pure presentation:
+- **Two visual skins, one mechanic** — game logic only knows moves `A/B/C` (`A>C>B>A`); skins are pure presentation:
   - **Rock Paper Scissors** — classic stacked layout, synced fist-shake reveal.
   - **Kick Block Punch** — side-view arena, 3-2-1-FIGHT countdown, lunge attacks, hit-flash + screen shake.
-  - **Spell Duel** — wizard duel; spell orbs channel, fly and collide.
   - Adding a skin = one folder + one registry entry (`apps/mobile/src/skins/`), zero logic changes.
 - **Sound effects** — procedurally generated cues, mutable in Settings.
 - **Practice vs bot** — server-side bot reuses the exact same match engine.

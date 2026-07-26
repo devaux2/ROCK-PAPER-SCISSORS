@@ -35,7 +35,7 @@ jobs:
           # Hugging Face reads Space config from README.md YAML frontmatter.
           printf '%s\n' \
             '---' \
-            'title: Throwdown' \
+            'title: RPS' \
             'emoji: ✊' \
             'colorFrom: yellow' \
             'colorTo: red' \

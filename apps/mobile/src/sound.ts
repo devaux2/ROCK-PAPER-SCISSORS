@@ -9,6 +9,7 @@ const SOURCES = {
   lose: require('../assets/sfx/lose.wav'),
   tick: require('../assets/sfx/tick.wav'),
   found: require('../assets/sfx/found.wav'),
+  coins: require('../assets/sfx/coins.wav'),
 } as const;
 const MUSIC_SOURCE = require('../assets/sfx/music.wav');
 

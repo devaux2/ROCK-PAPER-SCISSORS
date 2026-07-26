@@ -4,6 +4,7 @@ import {
   isMove,
   isEmoteId,
   EMOTE_COOLDOWN_MS,
+  REMATCH_TTL_MS,
   type ClientToServerEvents,
   type ServerToClientEvents,
 } from '@rps/shared';
@@ -125,12 +126,22 @@ export function createSocketServer(httpServer: HttpServer, ctx: AppContext): Rea
 
     socket.on('match:emote', (p) => {
       if (!p || !isEmoteId(p.emoteId)) return;
-      const engine = matches.engineById(p.matchId);
-      if (!engine || !engine.hasPlayer(userId)) return;
       const now = Date.now();
       if (now - lastEmoteAt < EMOTE_COOLDOWN_MS) return;
+      const engine = matches.engineById(p.matchId);
+      if (engine && engine.hasPlayer(userId)) {
+        lastEmoteAt = now;
+        engine.opponentOf(userId)?.send('match:emote', { matchId: p.matchId, emoteId: p.emoteId });
+        return;
+      }
+      // End-screen taunts: the match is over but both players linger on
+      // the result for the rematch window.
+      const finished = matches.finishedById(p.matchId);
+      if (!finished || !finished.userIds.includes(userId)) return;
+      if (now - finished.endedAt > REMATCH_TTL_MS) return;
       lastEmoteAt = now;
-      engine.opponentOf(userId)?.send('match:emote', { matchId: p.matchId, emoteId: p.emoteId });
+      const oppId = finished.userIds[0] === userId ? finished.userIds[1] : finished.userIds[0];
+      presence.get(oppId)?.send('match:emote', { matchId: p.matchId, emoteId: p.emoteId });
     });
 
     socket.on('match:rematch', (p, ack) => {

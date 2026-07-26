@@ -2,7 +2,7 @@
 /**
  * One-command game launcher for playtesting without any hosting account.
  *
- * Starts the Throwdown server on this computer and opens a free public
+ * Starts the RPS game server on this computer and opens a free public
  * Cloudflare "quick tunnel" (no account needed) so friends anywhere can
  * join. Falls back to local/Wi-Fi play if the tunnel can't be set up.
  *
@@ -188,7 +188,7 @@ await startServer();
 const publicUrl = cloudflared ? await startTunnel(cloudflared) : null;
 
 const lan = lanAddress();
-headline('THROWDOWN IS LIVE');
+headline('RPS IS LIVE');
 if (publicUrl) {
   say(`  Share this link with ANYONE, anywhere:\n`);
   say(`      ${publicUrl}\n`);

@@ -8,7 +8,14 @@ import { ChallengeToast } from '../../src/components/ChallengeToast';
 
 function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
   return (
-    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.3, transform: [{ scale: focused ? 1 : 0.9 }] }}>
+    <Text
+      style={{
+        fontSize: 22,
+        opacity: focused ? 1 : 0.3,
+        color: focused ? theme.accent : theme.textDim,
+        transform: [{ scale: focused ? 1 : 0.9 }],
+      }}
+    >
       {icon}
     </Text>
   );
@@ -81,7 +88,7 @@ export default function MainLayout() {
           options={{
             title: 'Profile',
             headerTitle: 'PROFILE',
-            tabBarIcon: ({ focused }) => <TabIcon icon="🧑" focused={focused} />,
+            tabBarIcon: ({ focused }) => <TabIcon icon="●" focused={focused} />,
           }}
         />
       </Tabs>

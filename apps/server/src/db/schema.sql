@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_time ON transactions(created_at);
 
 CREATE TABLE IF NOT EXISTS elo_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -28,11 +28,13 @@ export function VsOverlay({
   me,
   opponent,
   accent,
+  wager = 0,
   onDone,
 }: {
   me: Fighter;
   opponent: Fighter;
   accent: string;
+  wager?: number;
   onDone: () => void;
 }) {
   const slam = useSharedValue(0);
@@ -70,6 +72,16 @@ export function VsOverlay({
   return (
     <View style={styles.root} pointerEvents="none">
       <Animated.View style={[styles.backdrop, backdrop]} />
+      {wager > 0 && (
+        <Animated.View style={[styles.stakeWrap, vs]}>
+          <DisplayText size={22} color={theme.accent} style={theme.textGlow(theme.accent, 12)}>
+            🪙 {wager} each
+          </DisplayText>
+          <DisplayText size={30} color={theme.accent} style={theme.textGlow(theme.accent, 16)}>
+            Winner takes 🪙 {wager * 2}
+          </DisplayText>
+        </Animated.View>
+      )}
       <View style={styles.row}>
         <Animated.View style={[styles.fighter, mine]}>
           <Avatar avatar={me.avatar} size={84} />
@@ -120,4 +132,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   fighter: { alignItems: 'center', width: 120 },
+  stakeWrap: { position: 'absolute', top: '24%', alignItems: 'center', gap: 2 },
 });

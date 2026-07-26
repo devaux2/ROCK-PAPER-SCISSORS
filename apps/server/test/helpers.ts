@@ -1,13 +1,12 @@
 import type { OpponentInfo, ServerToClientEvents } from '@rps/shared';
 import type { PlayerPort } from '../src/game/MatchEngine';
 
-export function fakeInfo(id: number, elo = 1000): OpponentInfo {
+export function fakeInfo(id: number): OpponentInfo {
   return {
     id,
     username: `player${id}`,
     bio: '',
     avatar: 'avatar_01',
-    elo,
     wins: 0,
     losses: 0,
     winRate: 0,
@@ -25,8 +24,8 @@ export class FakePort implements PlayerPort {
   events: Recorded[] = [];
   info: OpponentInfo;
 
-  constructor(public userId: number, elo = 1000) {
-    this.info = fakeInfo(userId, elo);
+  constructor(public userId: number) {
+    this.info = fakeInfo(userId);
   }
 
   send<E extends keyof ServerToClientEvents>(

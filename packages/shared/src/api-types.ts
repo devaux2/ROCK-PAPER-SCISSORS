@@ -7,7 +7,6 @@ export interface UserProfile {
   /** Built-in avatar id like 'avatar_03', or 'b64:<base64 png>' for a custom photo. */
   avatar: string;
   coins: number;
-  elo: number;
   wins: number;
   losses: number;
   /** wins / (wins + losses), 0 when unplayed. Excludes bot matches. */
@@ -36,8 +35,8 @@ export interface FriendEntry {
 export interface LeaderboardRow {
   rank: number;
   user: PublicProfile;
-  ratingGained: number;
-  currentElo: number;
+  /** Net coins won in the window — the headline number. */
+  coinsWon: number;
 }
 
 export type LeaderboardWindow = 'weekly' | 'monthly';
@@ -68,7 +67,6 @@ export interface MatchHistoryRow {
   myScore: number;
   oppScore: number;
   endReason: 'score' | 'forfeit' | 'disconnect';
-  eloDelta: number;
   coinsDelta: number;
   endedAt: string;
 }

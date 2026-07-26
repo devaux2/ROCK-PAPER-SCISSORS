@@ -7,7 +7,6 @@ const opponent = {
   username: 'rival',
   bio: '',
   avatar: 'avatar_02',
-  elo: 1010,
   wins: 3,
   losses: 1,
   winRate: 0.75,
@@ -66,9 +65,7 @@ describe('matchStore', () => {
       youWon: true,
       reason: 'score',
       scores: { p1: 2, p2: 0 },
-      eloDelta: 16,
       coinsDelta: 50,
-      newElo: 1016,
       newCoins: 550,
     };
     s().onMatchEnd(end);
@@ -84,9 +81,7 @@ describe('matchStore', () => {
       youWon: false,
       reason: 'forfeit',
       scores: { p1: 0, p2: 2 },
-      eloDelta: -16,
       coinsDelta: -50,
-      newElo: 984,
       newCoins: 450,
     });
     s().onRematchOffered();

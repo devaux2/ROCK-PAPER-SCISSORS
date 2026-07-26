@@ -1,6 +1,5 @@
 import {
   beats,
-  randomMove,
   ROUNDS_TO_WIN,
   ROUND_TIME_MS,
   FIRST_ROUND_EXTRA_MS,
@@ -50,9 +49,7 @@ export interface MatchResult {
 }
 
 export interface SeatSettlement {
-  eloDelta: number;
   coinsDelta: number;
-  newElo: number;
   newCoins: number;
 }
 
@@ -150,10 +147,10 @@ export class MatchEngine {
     this.startRound();
   }
 
-  private startRound(): void {
+  private startRound(preserveMoves = false): void {
     if (this.phase === 'ended') return;
     this.phase = 'choosing';
-    this.moves = {};
+    if (!preserveMoves) this.moves = {};
     // The opening round absorbs the match-found moment on clients.
     const roundTime = ROUND_TIME_MS + (this.firstRoundPending ? FIRST_ROUND_EXTRA_MS : 0);
     this.firstRoundPending = false;
@@ -187,24 +184,38 @@ export class MatchEngine {
   private onRoundTimeout(): void {
     if (this.phase !== 'choosing') return;
     this.roundTimer = null;
-    const afk: Seat[] = [];
-    for (const seat of ['p1', 'p2'] as const) {
-      if (!this.moves[seat]) {
-        this.moves[seat] = randomMove(this.rng);
-        // Disconnected seats are the grace timer's problem, not AFK's.
+    const idle = (['p1', 'p2'] as const).filter((seat) => !this.moves[seat]);
+
+    if (idle.length === 2) {
+      // Both idle: replay once, then void the match (stakes refunded).
+      // Disconnected seats are the grace timer's problem, not AFK's.
+      let afk = 0;
+      for (const seat of idle) {
         if (this.disconnected[seat]) continue;
         this.consecutiveTimeouts[seat] += 1;
-        if (this.consecutiveTimeouts[seat] >= AFK_TIMEOUT_LIMIT) afk.push(seat);
+        if (this.consecutiveTimeouts[seat] >= AFK_TIMEOUT_LIMIT) afk += 1;
       }
-    }
-    if (afk.length === 2) {
-      this.end(null, 'forfeit');
+      if (afk > 0) {
+        this.end(null, 'forfeit');
+        return;
+      }
+      this.startRound();
       return;
     }
-    if (afk.length === 1) {
-      this.end(afk[0] === 'p1' ? 'p2' : 'p1', 'forfeit');
+
+    if (idle.length === 1) {
+      const seat = idle[0]!;
+      if (this.disconnected[seat]) {
+        // Keep the thrower's move; extend the clock until the grace timer
+        // resolves the disconnect or the player returns.
+        this.startRound(true);
+        return;
+      }
+      // No throw = you lose. Nobody wins a pot by standing still.
+      this.end(seat === 'p1' ? 'p2' : 'p1', 'no_play');
       return;
     }
+
     this.reveal();
   }
 
@@ -328,9 +339,7 @@ export class MatchEngine {
         youWon: winnerSeat === seat,
         reason,
         scores: { ...this.scores },
-        eloDelta: s.eloDelta,
         coinsDelta: s.coinsDelta,
-        newElo: s.newElo,
         newCoins: s.newCoins,
       });
     }

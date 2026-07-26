@@ -35,12 +35,11 @@ describe('auth + profile REST', () => {
     return { status: res.status, body: await res.json() };
   }
 
-  it('signs up with starting coins and elo', async () => {
+  it('signs up with starting coins', async () => {
     const r = await post('/auth/signup', { username: 'alice', password: 'secret1' });
     expect(r.status).toBe(201);
     expect(r.body.token).toBeTruthy();
     expect(r.body.user.coins).toBe(500);
-    expect(r.body.user.elo).toBe(1000);
     expect(r.body.user.winRate).toBe(0);
   });
 

@@ -51,9 +51,6 @@ export default function UserProfile() {
           <StatCard label="Record">
             <DisplayText size={28}>{`${profile.wins}W · ${profile.losses}L`}</DisplayText>
           </StatCard>
-          <StatCard label="Elo">
-            <StatNumber value={profile.elo} size={28} color={theme.blue} />
-          </StatCard>
         </View>
       </Animated.View>
     </ScrollView>

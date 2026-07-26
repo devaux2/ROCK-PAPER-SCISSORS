@@ -1,5 +1,5 @@
 import type { DB } from '../db';
-import type { MatchMode, MatchEndReason, Move, MatchHistoryRow } from '@rps/shared';
+import type { MatchMode, StoredEndReason, Move, MatchHistoryRow } from '@rps/shared';
 import { toPublicProfile, type UserRow } from './users.repo';
 
 export interface CompletedRound {
@@ -22,7 +22,7 @@ export class MatchesRepo {
   complete(
     id: string,
     winnerId: number | null,
-    reason: MatchEndReason,
+    reason: StoredEndReason,
     p1Score: number,
     p2Score: number,
     rounds: CompletedRound[]
@@ -50,15 +50,14 @@ export class MatchesRepo {
   historyFor(userId: number, limit = 30): MatchHistoryRow[] {
     const rows = this.db
       .prepare(
-        `SELECT m.*, u.*, m.id AS mid, m.created_at AS mcreated,
-                (SELECT e.delta FROM elo_history e WHERE e.match_id = m.id AND e.user_id = ?) AS elo_delta
+        `SELECT m.*, u.*, m.id AS mid, m.created_at AS mcreated
          FROM matches m
          LEFT JOIN users u ON u.id = CASE WHEN m.p1_id = ? THEN m.p2_id ELSE m.p1_id END
          WHERE m.status = 'complete' AND (m.p1_id = ? OR m.p2_id = ?)
          ORDER BY m.ended_at DESC, m.rowid DESC
          LIMIT ?`
       )
-      .all(userId, userId, userId, userId, limit) as Array<Record<string, unknown>>;
+      .all(userId, userId, userId, limit) as Array<Record<string, unknown>>;
     return rows.map((r) => {
       const isP1 = (r.p1_id as number) === userId;
       const myScore = isP1 ? (r.p1_score as number) : (r.p2_score as number);
@@ -82,18 +81,11 @@ export class MatchesRepo {
         aborted: winnerId === null && mode !== 'bot',
         myScore,
         oppScore,
-        endReason: r.end_reason as MatchEndReason,
-        eloDelta: (r.elo_delta as number | null) ?? 0,
+        endReason: r.end_reason as StoredEndReason,
         coinsDelta: mode === 'ranked' ? (won ? wager : winnerId === null ? 0 : -wager) : 0,
         endedAt: r.ended_at as string,
       };
     });
   }
 
-  updateElo(userId: number, matchId: string, delta: number, ratingAfter: number): void {
-    this.db.prepare('UPDATE users SET elo = ? WHERE id = ?').run(ratingAfter, userId);
-    this.db
-      .prepare('INSERT INTO elo_history (user_id, match_id, delta, rating_after) VALUES (?, ?, ?, ?)')
-      .run(userId, matchId, delta, ratingAfter);
-  }
 }

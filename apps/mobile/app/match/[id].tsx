@@ -20,6 +20,7 @@ import { EmoteWheel, EmoteBubble } from '../../src/components/EmoteWheel';
 import { Button, DisplayText, StatNumber, Tag } from '../../src/components/ui';
 import { useAuthStore } from '../../src/stores/authStore';
 import { VsOverlay } from '../../src/components/VsOverlay';
+import { PayoutCelebration } from '../../src/components/PayoutCelebration';
 import { theme } from '../../src/theme';
 import { playSound } from '../../src/sound';
 
@@ -168,7 +169,9 @@ export default function MatchScreen() {
           <DisplayText size={20}>{opponent.username}</DisplayText>
           <View style={styles.subRow}>
             <Text style={{ color: theme.textDim, fontSize: 12, fontWeight: '600' }}>
-              {opponent.isBot ? 'Practice bot' : `⚡ ${opponent.elo}`}
+              {opponent.isBot
+                ? 'Practice bot'
+                : `${Math.round(opponent.winRate * 100)}% win rate`}
             </Text>
             {mode === 'ranked' && wager > 0 && (
               <View style={styles.potChip}>
@@ -191,6 +194,15 @@ export default function MatchScreen() {
             <View style={styles.roundTag}>
               <Tag>ROUND {roundNo}</Tag>
             </View>
+            {mode === 'ranked' && wager > 0 && (
+              <DisplayText
+                size={34}
+                color={theme.accent}
+                style={[theme.textGlow(theme.accent, 16), { marginBottom: 4 }]}
+              >
+                Pot 🪙 {wager * 2}
+              </DisplayText>
+            )}
             {deadline && <Countdown deadline={deadline} />}
             {myMove ? (
               <PulsingText color={skin.theme.text}>
@@ -221,27 +233,22 @@ export default function MatchScreen() {
         )}
         {phase === 'ended' && endResult && (
           <Animated.View entering={FadeIn.duration(300)} style={styles.endWrap}>
-            <skin.MatchEndScene won={endResult.youWon} reason={endResult.reason} />
-            <View style={styles.endStats}>
-              {mode === 'ranked' && (
-                <>
-                  <StatNumber
-                    value={endResult.coinsDelta}
-                    size={26}
-                    color={endResult.coinsDelta >= 0 ? theme.green : theme.danger}
-                    prefix={endResult.coinsDelta >= 0 ? '+' : ''}
-                    suffix=" 🪙"
-                  />
-                  <StatNumber
-                    value={endResult.eloDelta}
-                    size={26}
-                    color={endResult.eloDelta >= 0 ? theme.green : theme.danger}
-                    prefix={endResult.eloDelta >= 0 ? '+' : ''}
-                    suffix=" ELO"
-                  />
-                </>
-              )}
-            </View>
+            {endResult.reason === 'no_play' && !endResult.youWon ? (
+              <NoPlayScene />
+            ) : (
+              <skin.MatchEndScene
+                won={endResult.youWon}
+                reason={endResult.reason === 'no_play' ? 'forfeit' : endResult.reason}
+              />
+            )}
+            {mode === 'ranked' && (
+              <PayoutCelebration
+                won={endResult.youWon}
+                wager={wager}
+                coinsDelta={endResult.coinsDelta}
+                newBalance={endResult.newCoins}
+              />
+            )}
             {rematchOffered && !rematchSent && (
               <PulsingText color={theme.accent} style={styles.rematchOffer}>
                 {opponent.username} wants a rematch!
@@ -296,17 +303,38 @@ export default function MatchScreen() {
           me={{ username: me.username, avatar: me.avatar }}
           opponent={{ username: opponent.username, avatar: opponent.avatar }}
           accent={skin.theme.accent}
+          wager={mode === 'ranked' ? wager : 0}
           onDone={() => setShowVs(false)}
         />
       )}
 
-      {/* Practice mode included — taunting the bot is free therapy. */}
-      {(phase === 'choosing' || phase === 'revealing') && (
-        <EmoteWheel onEmote={(id) => matchId && game.sendEmote(matchId, id)} />
+      {/* Taunts live on the end screen — gloat after the payout. */}
+      {phase === 'ended' && (
+        <EmoteWheel anchorBottom={28} onEmote={(id) => matchId && game.sendEmote(matchId, id)} />
       )}
     </View>
   );
 }
+
+/** The walk of shame: you stood there and threw nothing. */
+function NoPlayScene() {
+  return (
+    <Animated.View entering={FadeInDown.springify().damping(11)} style={npStyles.root}>
+      <DisplayText size={96} color={theme.danger} style={theme.textGlow(theme.danger, 26)}>
+        ✕
+      </DisplayText>
+      <DisplayText size={44} color={theme.danger} style={theme.textGlow(theme.danger, 14)}>
+        No play
+      </DisplayText>
+      <Text style={npStyles.sub}>You didn't throw</Text>
+    </Animated.View>
+  );
+}
+
+const npStyles = StyleSheet.create({
+  root: { alignItems: 'center', gap: 2 },
+  sub: { color: theme.textDim, fontWeight: '700', marginTop: 4 },
+});
 
 const styles = StyleSheet.create({
   root: { flex: 1 },

@@ -7,14 +7,12 @@ import { config } from '../config';
 
 interface QueueEntry {
   port: PlayerPort;
-  elo: number;
   joinedAt: number;
 }
 
 /**
- * In-memory matchmaking. Casual is FIFO; ranked keeps one queue per wager
- * tier and pairs the closest-Elo players whose tolerance windows overlap.
- * Tolerance grows the longer a player waits.
+ * In-memory matchmaking. The wager brackets do the segmenting; inside a
+ * bracket it's first-come-first-served for the fastest possible pairing.
  */
 export class Matchmaking {
   private casual: QueueEntry[] = [];
@@ -45,7 +43,7 @@ export class Matchmaking {
     if (this.matches.isInMatch(port.userId)) return { ok: false, error: 'Already in a match' };
 
     if (mode === 'casual') {
-      this.casual.push({ port, elo: port.info.elo, joinedAt: Date.now() });
+      this.casual.push({ port, joinedAt: Date.now() });
       this.tierByUser.set(port.userId, 'casual');
     } else {
       if (!isWagerTier(wagerTier)) return { ok: false, error: 'Invalid wager tier' };
@@ -57,7 +55,7 @@ export class Matchmaking {
         }
         throw e;
       }
-      this.ranked.get(wagerTier)!.push({ port, elo: port.info.elo, joinedAt: Date.now() });
+      this.ranked.get(wagerTier)!.push({ port, joinedAt: Date.now() });
       this.tierByUser.set(port.userId, wagerTier);
     }
     port.send('queue:status', {
@@ -65,7 +63,7 @@ export class Matchmaking {
       wager: mode === 'ranked' ? (wagerTier as number) : 0,
       waitingSince: Date.now(),
     });
-    // Try to pair immediately so tests and fast matches don't wait a tick.
+    // Try to pair immediately so fast matches don't wait a tick.
     this.tick();
     return { ok: true };
   }
@@ -87,14 +85,7 @@ export class Matchmaking {
     }
   }
 
-  private toleranceFor(entry: QueueEntry, now: number): number {
-    const waited = now - entry.joinedAt;
-    return config.mmBaseTolerance + Math.floor(waited / 3000) * config.mmToleranceStepPer3s;
-  }
-
   tick(): void {
-    const now = Date.now();
-
     while (this.casual.length >= 2) {
       const a = this.casual.shift()!;
       const b = this.casual.shift()!;
@@ -102,38 +93,14 @@ export class Matchmaking {
       this.tierByUser.delete(b.port.userId);
       this.matches.createMatch('casual', 0, a.port, b.port);
     }
-
     for (const [tier, queue] of this.ranked) {
       while (queue.length >= 2) {
-        const pair = this.bestPair(queue, now);
-        if (!pair) break;
-        const [i, j] = pair;
-        // Remove higher index first so the lower index stays valid.
-        const b = queue.splice(Math.max(i, j), 1)[0]!;
-        const a = queue.splice(Math.min(i, j), 1)[0]!;
+        const a = queue.shift()!;
+        const b = queue.shift()!;
         this.tierByUser.delete(a.port.userId);
         this.tierByUser.delete(b.port.userId);
         this.matches.createMatch('ranked', tier, a.port, b.port);
       }
     }
-  }
-
-  /** Closest-Elo pair whose combined tolerance covers their gap, or null. */
-  private bestPair(queue: QueueEntry[], now: number): [number, number] | null {
-    let best: [number, number] | null = null;
-    let bestGap = Infinity;
-    for (let i = 0; i < queue.length; i++) {
-      for (let j = i + 1; j < queue.length; j++) {
-        const a = queue[i]!;
-        const b = queue[j]!;
-        const gap = Math.abs(a.elo - b.elo);
-        const allowed = this.toleranceFor(a, now) + this.toleranceFor(b, now);
-        if (gap <= allowed && gap < bestGap) {
-          bestGap = gap;
-          best = [i, j];
-        }
-      }
-    }
-    return best;
   }
 }

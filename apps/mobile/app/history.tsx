@@ -77,8 +77,7 @@ export default function History() {
                     ]}
                   >
                     {item.coinsDelta >= 0 ? '+' : ''}
-                    {item.coinsDelta} 🪙 · {item.eloDelta >= 0 ? '+' : ''}
-                    {item.eloDelta} elo
+                    {item.coinsDelta} 🪙
                   </Text>
                 )}
               </View>

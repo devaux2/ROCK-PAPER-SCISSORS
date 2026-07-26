@@ -118,7 +118,7 @@ export default function Friends() {
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.name}>{item.user.username}</Text>
                     <Text style={styles.meta}>
-                      ⚡ {item.user.elo} · {Math.round(item.user.winRate * 100)}% wins
+                      {item.user.wins} W · {item.user.losses} L · {Math.round(item.user.winRate * 100)}% wins
                     </Text>
                   </View>
                   {item.status === 'pending' && item.incoming ? (

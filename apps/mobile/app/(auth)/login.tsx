@@ -58,7 +58,7 @@ export default function Login() {
       </Animated.View>
       <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.logoWrap}>
         <DisplayText size={64} color={theme.accent} style={styles.logo}>
-          Throwdown
+          RPS
         </DisplayText>
       </Animated.View>
       <Animated.View entering={FadeInDown.delay(120).springify()}>

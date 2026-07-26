@@ -8,7 +8,6 @@ export const BOT_INFO: OpponentInfo = {
   username: 'RoboThrow',
   bio: 'Beep boop. I never sleep, I only throw.',
   avatar: 'avatar_12',
-  elo: 1000,
   wins: 0,
   losses: 0,
   winRate: 0,

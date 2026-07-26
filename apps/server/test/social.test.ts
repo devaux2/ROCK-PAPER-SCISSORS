@@ -169,13 +169,13 @@ describe('friends, challenges, emotes, economy', () => {
     expect((await api('dana', '/economy/daily-topup', 'POST')).status).toBe(429);
   });
 
-  it('leaderboard windows include recent rating changes', async () => {
+  it('leaderboard windows rank recent winnings', async () => {
     const weekly = await (await api('dana', '/leaderboards?window=weekly')).json();
     const monthly = await (await api('dana', '/leaderboards?window=monthly')).json();
     // dana/eli played a ranked challenge match above.
     expect(weekly.length).toBeGreaterThanOrEqual(2);
     expect(monthly.length).toBeGreaterThanOrEqual(2);
-    expect(weekly[0].ratingGained).toBeGreaterThan(0);
+    expect(weekly[0].coinsWon).toBeGreaterThan(0);
     expect(weekly[0].rank).toBe(1);
   });
 });

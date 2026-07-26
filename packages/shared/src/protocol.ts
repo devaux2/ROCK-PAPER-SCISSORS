@@ -4,7 +4,9 @@ import type { EmoteId } from './emotes';
 import type { PublicProfile } from './api-types';
 
 export type MatchMode = 'ranked' | 'casual' | 'bot';
-export type MatchEndReason = 'score' | 'forfeit' | 'disconnect';
+export type MatchEndReason = 'score' | 'forfeit' | 'disconnect' | 'no_play';
+/** What lands in persistence/history — no_play is stored as a forfeit. */
+export type StoredEndReason = 'score' | 'forfeit' | 'disconnect';
 
 /** Server-side timings, exported so clients and tests share one source of truth. */
 export const ROUND_TIME_MS = 4_000;
@@ -50,9 +52,7 @@ export interface MatchEndPayload {
   youWon: boolean;
   reason: MatchEndReason;
   scores: { p1: number; p2: number };
-  eloDelta: number;
   coinsDelta: number;
-  newElo: number;
   newCoins: number;
 }
 

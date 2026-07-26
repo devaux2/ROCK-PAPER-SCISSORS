@@ -12,7 +12,7 @@ import { FakePort } from './helpers';
 // Round 1 carries the match-found grace on top of the base window.
 const ROUND1_MS = ROUND_TIME_MS + FIRST_ROUND_EXTRA_MS;
 
-const blank: SeatSettlement = { eloDelta: 0, coinsDelta: 0, newElo: 1000, newCoins: 500 };
+const blank: SeatSettlement = { coinsDelta: 0, newCoins: 500 };
 
 /** rng pinned to 0 makes every timeout-filled random move 'A' (deterministic draws). */
 function makeEngine(p1: FakePort, p2: FakePort, rng: () => number = () => 0) {
@@ -89,68 +89,47 @@ describe('MatchEngine (sudden death: first decisive throw wins)', () => {
     expect(results[0]!.rounds[0]!.winner).toBe('draw');
   });
 
-  it('a timeout fills a random move and the match resolves', () => {
+  it('a no-show loses the match immediately — idling can never win a pot', () => {
     const p1 = new FakePort(1);
     const p2 = new FakePort(2);
-    // rng 0.9 -> timeout move is 'C'; p1's 'A' beats it.
-    const { engine, results } = makeEngine(p1, p2, () => 0.9);
-    engine.start();
-
-    engine.submitMove(1, 'A');
-    vi.advanceTimersByTime(ROUND1_MS);
-    expect(p1.count('round:result')).toBe(1);
-    expect(p2.last('round:result')?.yourMove).toBe('C');
-    vi.advanceTimersByTime(REVEAL_TIME_MS);
-    expect(results[0]!.winnerSeat).toBe('p1');
-    expect(results[0]!.reason).toBe('score');
-  });
-
-  it('forfeits a player after two consecutive timeouts (drawn replays)', () => {
-    const p1 = new FakePort(1);
-    const p2 = new FakePort(2);
-    // rng 0 -> timeout move is 'A'; p1 also throws 'A' so every round draws.
     const { engine, results } = makeEngine(p1, p2);
     engine.start();
 
     engine.submitMove(1, 'A');
-    vi.advanceTimersByTime(ROUND1_MS); // p2 timeout #1 -> draw, replay
-    vi.advanceTimersByTime(REVEAL_TIME_MS);
-    engine.submitMove(1, 'A');
-    vi.advanceTimersByTime(ROUND_TIME_MS); // p2 timeout #2 -> forfeit
-
+    vi.advanceTimersByTime(ROUND1_MS); // p2 never throws
     expect(results).toHaveLength(1);
     expect(results[0]!.winnerSeat).toBe('p1');
-    expect(results[0]!.reason).toBe('forfeit');
+    expect(results[0]!.reason).toBe('no_play');
+    // No fabricated round was revealed.
+    expect(results[0]!.rounds).toHaveLength(0);
   });
 
-  it('aborts with no winner when both players go AFK twice', () => {
+  it('voids the match when both players idle twice (stakes refunded)', () => {
     const p1 = new FakePort(1);
     const p2 = new FakePort(2);
     const { engine, results } = makeEngine(p1, p2);
     engine.start();
 
-    vi.advanceTimersByTime(ROUND1_MS); // both timeout #1 -> draw
-    vi.advanceTimersByTime(REVEAL_TIME_MS);
-    vi.advanceTimersByTime(ROUND_TIME_MS); // both timeout #2
+    vi.advanceTimersByTime(ROUND1_MS); // both idle #1 -> silent replay
+    expect(results).toHaveLength(0);
+    expect(p1.count('round:start')).toBe(2);
+    vi.advanceTimersByTime(ROUND_TIME_MS); // both idle #2 -> void
 
     expect(results[0]!.winnerSeat).toBeNull();
     expect(results[0]!.reason).toBe('forfeit');
   });
 
-  it('a move resets the consecutive-timeout counter', () => {
+  it('a thrown round resets the both-idle strike counter', () => {
     const p1 = new FakePort(1);
     const p2 = new FakePort(2);
     const { engine, results } = makeEngine(p1, p2);
     engine.start();
 
+    vi.advanceTimersByTime(ROUND1_MS); // both idle #1 -> replay
     engine.submitMove(1, 'A');
-    vi.advanceTimersByTime(ROUND1_MS); // p2 timeout #1 -> draw
+    engine.submitMove(2, 'A'); // both throw -> counters reset (draw, replay)
     vi.advanceTimersByTime(REVEAL_TIME_MS);
-    engine.submitMove(1, 'A');
-    engine.submitMove(2, 'A'); // p2 moves -> counter reset (draw, replay)
-    vi.advanceTimersByTime(REVEAL_TIME_MS);
-    engine.submitMove(1, 'A');
-    vi.advanceTimersByTime(ROUND_TIME_MS); // p2 timeout — only #1 again
+    vi.advanceTimersByTime(ROUND_TIME_MS); // both idle again — strike #1, not #2
 
     expect(results).toHaveLength(0);
   });
@@ -176,8 +155,9 @@ describe('MatchEngine (sudden death: first decisive throw wins)', () => {
     engine.start();
 
     engine.playerDisconnected(2);
-    // Rounds keep drawing (rng 0) but a disconnected seat gains no AFK
-    // strikes — the grace timer decides.
+    engine.submitMove(1, 'A');
+    // p1's throw is preserved while the clock extends for the missing
+    // opponent; the grace timer decides their fate.
     vi.advanceTimersByTime(DISCONNECT_GRACE_MS);
 
     expect(results[0]!.winnerSeat).toBe('p1');

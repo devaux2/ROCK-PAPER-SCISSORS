@@ -49,7 +49,7 @@ export default function Leaderboard() {
         keyExtractor={(row) => String(row.user.id)}
         ListEmptyComponent={
           <Text style={styles.empty}>
-            No ranked matches {window === 'weekly' ? 'this week' : 'this month'} yet. Be the first!
+            No winnings {window === 'weekly' ? 'this week' : 'this month'} yet. Be the first!
           </Text>
         }
         renderItem={({ item, index }) => {
@@ -80,13 +80,15 @@ export default function Leaderboard() {
                     <Text style={[styles.name, podium >= 0 && styles.namePodium]}>
                       {item.user.username}
                     </Text>
-                    <Text style={styles.meta}>⚡ {item.currentElo} Elo</Text>
+                    <Text style={styles.meta}>
+                      {item.user.wins} W · {item.user.losses} L
+                    </Text>
                   </View>
                   <StatNumber
-                    value={item.ratingGained}
-                    size={podium >= 0 ? 24 : 20}
-                    color={item.ratingGained < 0 ? theme.red : theme.green}
-                    prefix={item.ratingGained >= 0 ? '+' : ''}
+                    value={Math.abs(item.coinsWon)}
+                    size={podium >= 0 ? 26 : 20}
+                    color={item.coinsWon < 0 ? theme.red : theme.accent}
+                    prefix={item.coinsWon >= 0 ? '+🪙 ' : '−🪙 '}
                   />
                 </Card>
               </PressableScale>

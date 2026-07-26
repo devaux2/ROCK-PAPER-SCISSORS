@@ -29,7 +29,13 @@ const SWEEP_END = Math.PI * 0.48; // just past straight-up
  * Radial emote wheel: tap the corner face button to fan 8 emotes in two
  * arcs across the upper-left quadrant; tapping one sends it and collapses.
  */
-export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
+export function EmoteWheel({
+  onEmote,
+  anchorBottom = 232,
+}: {
+  onEmote: (id: EmoteId) => void;
+  anchorBottom?: number;
+}) {
   const [open, setOpen] = useState(false);
 
   let index = 0;
@@ -59,7 +65,7 @@ export function EmoteWheel({ onEmote }: { onEmote: (id: EmoteId) => void }) {
           onPointerDown={() => setOpen(false)}
         />
       )}
-      <View pointerEvents="box-none" style={styles.root}>
+      <View pointerEvents="box-none" style={[styles.root, { bottom: anchorBottom }]}>
       {items.map(({ emote, key, staggerIndex, radius, angle }) => (
         <WheelItem
           key={key}
@@ -164,8 +170,7 @@ export function EmoteBubble({ emoteId, seq }: { emoteId: EmoteId; seq: number })
 }
 
 const styles = StyleSheet.create({
-  // Sits above the move row so it never covers Forfeit or the third card.
-  root: { position: 'absolute', right: 20, bottom: 232, alignItems: 'center', justifyContent: 'center' },
+  root: { position: 'absolute', right: 20, alignItems: 'center', justifyContent: 'center' },
   scrim: {
     position: 'absolute',
     top: 0,

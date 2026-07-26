@@ -104,17 +104,21 @@ export default function Matchmaking() {
         <DisplayText size={34} color={theme.accent} style={styles.title}>
           {queueMode === 'ranked' ? `Ranked · 🪙 ${queueWager}` : 'Casual match'}
         </DisplayText>
+        {queueMode === 'ranked' && (
+          <DisplayText
+            size={24}
+            color={theme.green}
+            style={[{ textAlign: 'center', marginTop: 4 }, theme.textGlow(theme.green, 10)]}
+          >
+            Winner takes 🪙 {queueWager * 2}
+          </DisplayText>
+        )}
       </Animated.View>
       <Animated.View entering={FadeInDown.delay(120).springify()} style={styles.center}>
         <Text style={styles.sub}>Searching for an opponent…</Text>
         <StatNumber value={waited} suffix="s" size={40} color={theme.text} />
         <SweepBar />
       </Animated.View>
-      {queueMode === 'ranked' && waited > 6 && (
-        <Animated.View entering={FadeIn.duration(300)}>
-          <Text style={styles.hint}>Widening the Elo net to find you a match…</Text>
-        </Animated.View>
-      )}
       <Animated.View entering={FadeInDown.delay(180).springify()} style={styles.cancel}>
         <Button title="Cancel" variant="secondary" onPress={cancel} />
       </Animated.View>

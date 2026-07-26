@@ -53,9 +53,6 @@ export default function Profile() {
           <StatCard label="Record">
             <DisplayText size={30}>{`${user.wins} W · ${user.losses} L`}</DisplayText>
           </StatCard>
-          <StatCard label="Elo">
-            <StatNumber value={user.elo} size={30} color={theme.blue} />
-          </StatCard>
           <StatCard label="Coins">
             <StatNumber value={user.coins} prefix="🪙 " size={30} color={theme.accent} />
           </StatCard>
