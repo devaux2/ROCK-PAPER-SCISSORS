@@ -6,6 +6,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 import { Avatar } from '../../src/components/Avatar';
 import { Button, Card, DisplayText, StatNumber, Tag } from '../../src/components/ui';
 import { theme } from '../../src/theme';
+import { rankTitle } from '../../src/rank';
 
 export default function Profile() {
   const router = useRouter();
@@ -31,6 +32,9 @@ export default function Profile() {
         <DisplayText size={34} style={{ marginTop: theme.space(3) }}>
           {user.username}
         </DisplayText>
+        <View style={styles.rankChip}>
+          <Text style={styles.rankChipText}>🥇 {rankTitle(user.wins).toUpperCase()}</Text>
+        </View>
         {user.bio ? (
           <Text style={styles.bio}>{user.bio}</Text>
         ) : (
@@ -55,6 +59,9 @@ export default function Profile() {
           </StatCard>
           <StatCard label="Coins">
             <StatNumber value={user.coins} prefix="🪙 " size={30} color={theme.accent} />
+          </StatCard>
+          <StatCard label="Biggest win">
+            <StatNumber value={user.biggestWin} prefix="🪙 " size={30} color={theme.green} />
           </StatCard>
         </View>
       </Animated.View>
@@ -90,6 +97,16 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   bio: { color: theme.textDim, marginTop: 6, textAlign: 'center', paddingHorizontal: 24 },
+  rankChip: {
+    backgroundColor: theme.bgRaised,
+    borderWidth: 1,
+    borderColor: theme.goldBorder,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginTop: 8,
+  },
+  rankChipText: { color: theme.accent, fontSize: 11, fontWeight: '900', letterSpacing: 2 },
   statGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

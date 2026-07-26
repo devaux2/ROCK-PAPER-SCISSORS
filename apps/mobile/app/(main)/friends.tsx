@@ -244,7 +244,7 @@ function SectionHeader({
     label = 'Friend requests';
   } else if (index === incoming && accepted > 0) {
     label = 'Friends';
-    color = theme.blue;
+    color = theme.green;
   } else if (index === incoming + accepted && items.length > incoming + accepted) {
     label = 'Sent requests';
     color = theme.textDim;

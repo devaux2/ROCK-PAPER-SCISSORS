@@ -11,6 +11,7 @@ export const BOT_INFO: OpponentInfo = {
   wins: 0,
   losses: 0,
   winRate: 0,
+  biggestWin: 0,
   createdAt: '2026-01-01T00:00:00.000Z',
   isBot: true,
 };

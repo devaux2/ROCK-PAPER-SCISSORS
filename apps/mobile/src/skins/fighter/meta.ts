@@ -14,8 +14,8 @@ export const fighterMeta: SkinMeta = {
     C: { label: 'Block', icon: '🛡️' },
   },
   theme: {
-    bg: '#200E12',
-    panel: '#33161C',
+    bg: '#140807',
+    panel: '#2A120E',
     accent: '#FF4655',
     text: '#FFEDEA',
     textDim: '#B98A8A',

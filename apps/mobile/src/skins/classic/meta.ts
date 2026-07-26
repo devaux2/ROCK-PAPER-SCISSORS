@@ -11,11 +11,11 @@ export const classicMeta: SkinMeta = {
     C: { label: 'Scissors', icon: '✌️' },
   },
   theme: {
-    bg: '#1A2233',
-    panel: '#243047',
-    accent: '#F0B429',
-    text: '#EAF0FA',
-    textDim: '#93A3BE',
+    bg: '#0B0906',
+    panel: '#1B1408',
+    accent: '#FFC93C',
+    text: '#FFF6E3',
+    textDim: '#A08F6C',
   },
   layout: 'stacked',
 };

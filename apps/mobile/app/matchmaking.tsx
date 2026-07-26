@@ -13,6 +13,7 @@ import Animated, {
 import { useMatchStore } from '../src/stores/matchStore';
 import { game } from '../src/socket/socket';
 import { Button, DisplayText, StatNumber } from '../src/components/ui';
+import { CoinField, LightPool } from '../src/components/bling';
 import { theme } from '../src/theme';
 
 const RING_SIZE = 180;
@@ -95,6 +96,8 @@ export default function Matchmaking() {
 
   return (
     <View style={styles.root}>
+      <LightPool size={340} style={{ alignSelf: 'center', top: 120 }} />
+      {queueMode === 'ranked' && <CoinField count={8} />}
       <Animated.View entering={FadeIn.duration(300)} style={styles.radar}>
         <RadarRing delay={0} />
         <RadarRing delay={900} />
@@ -173,6 +176,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     backgroundColor: theme.accent,
   },
-  hint: { color: theme.blue, marginTop: 12, fontStyle: 'italic' },
+  hint: { color: theme.accent, marginTop: 12, fontStyle: 'italic' },
   cancel: { position: 'absolute', bottom: 48, left: 24, right: 24 },
 });

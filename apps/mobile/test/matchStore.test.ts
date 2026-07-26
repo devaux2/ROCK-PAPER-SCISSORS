@@ -10,6 +10,7 @@ const opponent = {
   wins: 3,
   losses: 1,
   winRate: 0.75,
+  biggestWin: 100,
   createdAt: '2026-01-01',
 };
 

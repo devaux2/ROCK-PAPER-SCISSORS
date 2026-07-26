@@ -8,6 +8,7 @@ import type {
   TransactionRow,
   TopupResponse,
   MatchHistoryRow,
+  RecentWinRow,
 } from '@rps/shared';
 
 export class ApiError extends Error {
@@ -63,6 +64,7 @@ export const api = {
   declineFriend: (userId: number) => request<{ ok: boolean }>(`/friends/${userId}/decline`, { method: 'POST' }),
   removeFriend: (userId: number) => request<{ ok: boolean }>(`/friends/${userId}`, { method: 'DELETE' }),
   leaderboard: (window: LeaderboardWindow) => request<LeaderboardRow[]>(`/leaderboards?window=${window}`),
+  winsFeed: () => request<RecentWinRow[]>('/leaderboards/feed'),
   dailyTopup: () => request<TopupResponse>('/economy/daily-topup', { method: 'POST' }),
   history: () => request<TransactionRow[]>('/economy/history'),
   matchHistory: () => request<MatchHistoryRow[]>('/matches/history'),

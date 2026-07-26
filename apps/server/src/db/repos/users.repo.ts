@@ -14,6 +14,8 @@ export interface UserRow {
   losses: number;
   last_topup_at: string | null;
   created_at: string;
+  /** Present when the row was selected through UsersRepo (subquery). */
+  biggest_win?: number;
 }
 
 export function toProfile(row: UserRow): UserProfile {
@@ -27,6 +29,7 @@ export function toProfile(row: UserRow): UserProfile {
     wins: row.wins,
     losses: row.losses,
     winRate: played === 0 ? 0 : row.wins / played,
+    biggestWin: row.biggest_win ?? 0,
     createdAt: row.created_at,
   };
 }
@@ -52,12 +55,19 @@ export class UsersRepo {
     return user;
   }
 
+  private static readonly SELECT = `
+    SELECT u.*, COALESCE((
+      SELECT MAX(t.amount) FROM transactions t
+      WHERE t.user_id = u.id AND t.type = 'payout'
+    ), 0) AS biggest_win
+    FROM users u`;
+
   byId(id: number): UserRow | undefined {
-    return this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as UserRow | undefined;
+    return this.db.prepare(`${UsersRepo.SELECT} WHERE u.id = ?`).get(id) as UserRow | undefined;
   }
 
   byUsername(username: string): UserRow | undefined {
-    return this.db.prepare('SELECT * FROM users WHERE username = ?').get(username) as
+    return this.db.prepare(`${UsersRepo.SELECT} WHERE u.username = ?`).get(username) as
       | UserRow
       | undefined;
   }

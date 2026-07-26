@@ -88,5 +88,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   form: { marginTop: theme.space(2) },
-  link: { color: theme.blue, textAlign: 'center', marginTop: 16, fontWeight: '600' },
+  link: { color: theme.accent, textAlign: 'center', marginTop: 16, fontWeight: '700' },
 });

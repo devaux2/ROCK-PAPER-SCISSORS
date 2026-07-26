@@ -10,7 +10,8 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useAuthStore } from '../../src/stores/authStore';
-import { Button, Input, ErrorText, DisplayText, PressableScale } from '../../src/components/ui';
+import { Button, Input, ErrorText, DisplayText, MarkerText, PressableScale } from '../../src/components/ui';
+import { CoinField, LightPool } from '../../src/components/bling';
 import { theme } from '../../src/theme';
 
 /** Gentle idle float for the ✊✋✌️ hero. */
@@ -53,16 +54,23 @@ export default function Login() {
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <LightPool size={360} style={{ top: 40, alignSelf: 'center' }} />
+      <CoinField count={8} />
       <Animated.View entering={FadeInDown.springify()} style={styles.heroWrap}>
         <FloatingHero />
       </Animated.View>
       <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.logoWrap}>
-        <DisplayText size={64} color={theme.accent} style={styles.logo}>
+        <DisplayText size={72} color={theme.text} style={[styles.logo, theme.textGlow('rgba(255,201,60,0.55)', 24)]}>
           RPS
         </DisplayText>
       </Animated.View>
       <Animated.View entering={FadeInDown.delay(120).springify()}>
-        <Text style={styles.subtitle}>One throw. Winner takes the pot.</Text>
+        <MarkerText
+          size={20}
+          style={[styles.subtitle, theme.textGlow('rgba(255,178,32,0.6)', 12)]}
+        >
+          Real money. Real wins.
+        </MarkerText>
       </Animated.View>
       <Animated.View entering={FadeInDown.delay(180).springify()} style={styles.form}>
         <Input placeholder="Username" value={username} onChangeText={setUsername} />
@@ -90,19 +98,13 @@ const styles = StyleSheet.create({
   heroWrap: { alignItems: 'center' },
   hero: { fontSize: 56, textAlign: 'center' },
   logoWrap: { alignItems: 'center', marginTop: theme.space(3) },
-  logo: {
-    textAlign: 'center',
-    textShadowColor: theme.accent,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 22,
-  },
+  logo: { textAlign: 'center' },
   subtitle: {
-    color: theme.textDim,
     textAlign: 'center',
-    marginTop: 6,
+    marginTop: 2,
     marginBottom: 24,
-    fontWeight: '600',
+    transform: [{ rotate: '-2deg' }],
   },
   form: { marginTop: theme.space(2) },
-  link: { color: theme.blue, textAlign: 'center', marginTop: 16, fontWeight: '600' },
+  link: { color: theme.accent, textAlign: 'center', marginTop: 16, fontWeight: '700' },
 });

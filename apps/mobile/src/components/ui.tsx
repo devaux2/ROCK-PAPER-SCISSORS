@@ -52,7 +52,7 @@ export function PressableScale({
   );
 }
 
-/** Bebas Neue display type — uppercase, tracked, loud. */
+/** Anton poster type — uppercase, heavyweight, loud. */
 export function DisplayText({
   children,
   size = 24,
@@ -71,12 +71,31 @@ export function DisplayText({
           fontFamily: theme.fonts.display,
           fontSize: size,
           color,
-          letterSpacing: Math.max(1, size * 0.06),
+          letterSpacing: Math.max(0.5, size * 0.03),
           textTransform: 'uppercase',
         },
         style,
       ]}
     >
+      {children}
+    </Text>
+  );
+}
+
+/** Graffiti-marker voice — taglines, trash talk, one per screen max. */
+export function MarkerText({
+  children,
+  size = 18,
+  color = theme.accent,
+  style,
+}: {
+  children: React.ReactNode;
+  size?: number;
+  color?: string;
+  style?: StyleProp<TextStyle>;
+}) {
+  return (
+    <Text style={[{ fontFamily: theme.fonts.marker, fontSize: size, color }, style]}>
       {children}
     </Text>
   );
@@ -126,7 +145,7 @@ export function StatNumber({
     <Animated.Text
       style={[
         {
-          fontFamily: theme.fonts.display,
+          fontFamily: theme.fonts.numeric,
           fontSize: size,
           color,
           letterSpacing: 1,

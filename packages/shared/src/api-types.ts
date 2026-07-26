@@ -11,6 +11,8 @@ export interface UserProfile {
   losses: number;
   /** wins / (wins + losses), 0 when unplayed. Excludes bot matches. */
   winRate: number;
+  /** Largest single pot ever collected (payout amount), 0 if none. */
+  biggestWin: number;
   createdAt: string;
 }
 
@@ -40,6 +42,15 @@ export interface LeaderboardRow {
 }
 
 export type LeaderboardWindow = 'weekly' | 'monthly';
+
+/** One entry in the global "recent big wins" ticker. */
+export interface RecentWinRow {
+  username: string;
+  avatar: string;
+  /** Pot collected (payout amount). */
+  amount: number;
+  at: string;
+}
 
 export interface TransactionRow {
   id: number;

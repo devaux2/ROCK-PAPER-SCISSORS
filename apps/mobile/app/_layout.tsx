@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts, BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
+import { useFonts } from 'expo-font';
+import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
+import { Anton_400Regular } from '@expo-google-fonts/anton';
+import { PermanentMarker_400Regular } from '@expo-google-fonts/permanent-marker';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
@@ -38,7 +41,11 @@ export default function RootLayout() {
   const token = useAuthStore((s) => s.token);
   const hydrated = useAuthStore((s) => s.hydrated);
   const [started, setStarted] = useState(false);
-  const [fontsLoaded] = useFonts({ BebasNeue_400Regular });
+  const [fontsLoaded] = useFonts({
+    BebasNeue_400Regular,
+    Anton_400Regular,
+    PermanentMarker_400Regular,
+  });
 
   useEffect(() => {
     void useSettingsStore.getState().hydrate();

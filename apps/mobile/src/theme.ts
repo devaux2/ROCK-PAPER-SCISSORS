@@ -1,36 +1,52 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 
 /**
- * App-wide "ARENA" design tokens (docs/DESIGN.md). Skins theme the game
+ * "GOLD RUSH" design language (docs/DESIGN.md): warm near-black felt,
+ * everything money glows gold, poster-weight type. Skins theme the game
  * screen's arena area; everything else speaks this language.
  */
 export const theme = {
-  bg: '#0B0E1A',
-  bgRaised: '#131829',
-  panel: '#181E33',
-  panelBorder: '#28304D',
-  text: '#F2F5FF',
-  textDim: '#8B94B8',
-  accent: '#FFC53D',
-  accentHot: '#FF9F1C',
-  accentText: '#131313',
-  danger: '#FF3D68',
-  red: '#FF3D68',
-  blue: '#3D9BFF',
-  green: '#2EE66B',
+  // Warm blacks — charcoal with a whisky tint, never blue.
+  bg: '#0B0906',
+  bgRaised: '#14100A',
+  panel: '#171208',
+  panelBorder: '#33280F',
+  goldBorder: '#8A6B1F',
+
+  text: '#FFF6E3',
+  textDim: '#A08F6C',
+
+  // The money color. accent == gold everywhere.
+  accent: '#FFC93C',
+  accentHot: '#F59E0B',
+  accentDeep: '#B87700',
+  accentText: '#1A1102',
+  danger: '#FF4D5E',
+  red: '#FF4D5E',
+  blue: '#4DA7FF',
+  green: '#3DE07A',
 
   gradients: {
-    cta: ['#FFC53D', '#FF9F1C'] as const,
-    win: ['#2EE66B', '#12B886'] as const,
-    lose: ['#FF3D68', '#C2255C'] as const,
-    panelSheen: ['#1B2138', '#141A2E'] as const,
+    cta: ['#FFE082', '#FFC93C', '#EE9D0C'] as const,
+    ctaPressed: ['#FFD75E', '#E8940A'] as const,
+    win: ['#3DE07A', '#12B886'] as const,
+    lose: ['#FF4D5E', '#C2255C'] as const,
+    panelSheen: ['#1D1709', '#120E07'] as const,
+    // Vertical wash behind heroes: warm glow fading into the felt.
+    heroGlow: ['rgba(255,178,32,0.16)', 'rgba(255,178,32,0.05)', 'rgba(11,9,6,0)'] as const,
+    tabBar: ['#181207', '#0C0905'] as const,
   },
 
   space: (n: number) => n * 4,
-  radius: { sm: 10, md: 14, lg: 20, pill: 999 },
+  radius: { sm: 10, md: 14, lg: 20, xl: 28, pill: 999 },
 
   fonts: {
-    display: 'BebasNeue_400Regular',
+    /** Anton — heavyweight poster type for headings and CTAs. */
+    display: 'Anton_400Regular',
+    /** Bebas — tall condensed numerals for money and stats. */
+    numeric: 'BebasNeue_400Regular',
+    /** Permanent Marker — the graffiti voice ("REAL MONEY. REAL WINS."). */
+    marker: 'PermanentMarker_400Regular',
   },
 
   springs: {

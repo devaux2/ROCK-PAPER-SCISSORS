@@ -12,7 +12,9 @@
     "build:web": "expo export --platform web && node scripts/postbuild-web.mjs"
   },
   "dependencies": {
+    "@expo-google-fonts/anton": "^0.4.2",
     "@expo-google-fonts/bebas-neue": "^0.4.1",
+    "@expo-google-fonts/permanent-marker": "^0.4.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@rps/shared": "*",
     "expo": "~57.0.8",

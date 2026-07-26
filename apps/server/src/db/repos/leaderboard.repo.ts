@@ -1,5 +1,5 @@
 import type { DB } from '../db';
-import type { LeaderboardRow, LeaderboardWindow } from '@rps/shared';
+import type { LeaderboardRow, LeaderboardWindow, RecentWinRow } from '@rps/shared';
 import { toPublicProfile, type UserRow } from './users.repo';
 
 export class LeaderboardRepo {
@@ -27,6 +27,26 @@ export class LeaderboardRepo {
       rank: i + 1,
       user: toPublicProfile(r),
       coinsWon: r.won,
+    }));
+  }
+
+  /** Latest pots collected, for the home-screen winners ticker. */
+  recentWins(limit = 10): RecentWinRow[] {
+    const rows = this.db
+      .prepare(
+        `SELECT u.username, u.avatar, t.amount, t.created_at
+         FROM transactions t
+         JOIN users u ON u.id = t.user_id
+         WHERE t.type = 'payout'
+         ORDER BY t.id DESC
+         LIMIT ?`
+      )
+      .all(limit) as Array<{ username: string; avatar: string; amount: number; created_at: string }>;
+    return rows.map((r) => ({
+      username: r.username,
+      avatar: r.avatar,
+      amount: r.amount,
+      at: r.created_at,
     }));
   }
 }

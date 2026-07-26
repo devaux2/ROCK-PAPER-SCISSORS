@@ -10,5 +10,9 @@ export function leaderboardRoutes(ctx: AppContext): Router {
     res.json(ctx.leaderboard.top(window));
   });
 
+  router.get('/feed', requireAuth, (_req, res) => {
+    res.json(ctx.leaderboard.recentWins());
+  });
+
   return router;
 }
