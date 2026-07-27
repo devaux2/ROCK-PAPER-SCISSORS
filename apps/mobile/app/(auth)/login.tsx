@@ -10,6 +10,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useAuthStore } from '../../src/stores/authStore';
+import { requestAppFullscreen } from '../../src/fullscreen';
 import { Button, Input, ErrorText, DisplayText, MarkerText, PressableScale } from '../../src/components/ui';
 import { CoinField, LightPool } from '../../src/components/bling';
 import { theme } from '../../src/theme';
@@ -38,6 +39,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
 
   async function submit() {
+    requestAppFullscreen(); // user gesture — take the whole screen for the game
     setError(null);
     setBusy(true);
     try {

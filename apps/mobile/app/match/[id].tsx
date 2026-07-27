@@ -17,7 +17,8 @@ import { game } from '../../src/socket/socket';
 import { Avatar } from '../../src/components/Avatar';
 import { Countdown } from '../../src/components/Countdown';
 import { EmoteWheel, EmoteBubble } from '../../src/components/EmoteWheel';
-import { Button, DisplayText, StatNumber, Tag } from '../../src/components/ui';
+import { Button, DisplayText, PressableScale, StatNumber, Tag } from '../../src/components/ui';
+import { startVoice, stopVoice, toggleMic, useVoiceStore } from '../../src/voice';
 import { useAuthStore } from '../../src/stores/authStore';
 import { VsOverlay } from '../../src/components/VsOverlay';
 import { PayoutCelebration } from '../../src/components/PayoutCelebration';
@@ -97,6 +98,18 @@ export default function MatchScreen() {
   const [revealDone, setRevealDone] = useState(false);
   const [showVs, setShowVs] = useState(false);
   const me = useAuthStore((s) => s.user);
+  const voiceStatus = useVoiceStore((s) => s.status);
+  const micMuted = useVoiceStore((s) => s.micMuted);
+  const isBot = opponent?.isBot === true;
+
+  // Open the voice line for the whole visit — from match start straight
+  // through the end screen — and hang up when leaving.
+  useEffect(() => {
+    if (!matchId || isBot) return;
+    void startVoice(matchId, seat === 'p1');
+    return () => stopVoice();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId, isBot]);
 
   // Slam the VS card whenever a fresh match begins (round 1, blank board).
   useEffect(() => {
@@ -107,16 +120,24 @@ export default function MatchScreen() {
   }, [matchId]);
   const [rematchError, setRematchError] = useState<string | null>(null);
   const [rematchSent, setRematchSent] = useState(false);
+  const [showPayout, setShowPayout] = useState(false);
+
+  // Let the VICTORY/DEFEAT stamp land first; the money show follows.
+  useEffect(() => {
+    if (phase !== 'ended') {
+      setShowPayout(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowPayout(true), 550);
+    return () => clearTimeout(timer);
+  }, [phase]);
 
   const myScore = seat === 'p1' ? scores.p1 : scores.p2;
   const oppScore = seat === 'p1' ? scores.p2 : scores.p1;
 
   const onRevealDone = useCallback(() => setRevealDone(true), []);
 
-  useEffect(() => {
-    if (phase === 'revealing') playSound('reveal');
-  }, [phase]);
-
+  // Reveal sounds are owned by the skin's RevealScene timeline now.
   useEffect(() => {
     if (endResult) playSound(endResult.youWon ? 'win' : 'lose');
   }, [endResult]);
@@ -180,6 +201,21 @@ export default function MatchScreen() {
             )}
           </View>
         </View>
+        {!isBot && voiceStatus !== 'off' && voiceStatus !== 'unsupported' && (
+          <PressableScale
+            accessibilityLabel="Mic toggle"
+            onPress={() => toggleMic()}
+            style={[
+              styles.micChip,
+              voiceStatus === 'live' && !micMuted && styles.micChipLive,
+              voiceStatus === 'failed' && styles.micChipFailed,
+            ]}
+          >
+            <Text style={{ fontSize: 15 }}>
+              {micMuted ? '🔇' : voiceStatus === 'failed' ? '🚫' : '🎙️'}
+            </Text>
+          </PressableScale>
+        )}
         <Pips score={oppScore} accent={skin.theme.accent} />
         {incomingEmote && (
           <EmoteBubble emoteId={incomingEmote.emoteId} seq={incomingEmote.seq} />
@@ -241,7 +277,7 @@ export default function MatchScreen() {
                 reason={endResult.reason === 'no_play' ? 'forfeit' : endResult.reason}
               />
             )}
-            {mode === 'ranked' && (
+            {mode === 'ranked' && showPayout && (
               <PayoutCelebration
                 won={endResult.youWon}
                 wager={wager}
@@ -370,6 +406,19 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
+  micChip: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.panel,
+    borderWidth: 1.5,
+    borderColor: theme.panelBorder,
+    marginRight: 10,
+  },
+  micChipLive: { borderColor: theme.green, ...theme.glow(theme.green, 8) },
+  micChipFailed: { borderColor: theme.danger, opacity: 0.7 },
   pips: { flexDirection: 'row', gap: 5 },
   pipSlot: {
     width: 12,

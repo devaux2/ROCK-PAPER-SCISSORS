@@ -66,6 +66,11 @@ export interface TopupResponse {
   coins: number;
 }
 
+export interface SocialBonusResponse {
+  granted: number;
+  coins: number;
+}
+
 export interface MatchHistoryRow {
   matchId: string;
   mode: 'ranked' | 'casual' | 'bot';

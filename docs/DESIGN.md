@@ -42,17 +42,40 @@ settings dialog.
 
 ## Signature layouts
 
-- **Home**: header (avatar + rank chip | BALANCE pill) → hero (RPS logo,
-  marker tagline, glow arch, ✊✋✌️ on plinths, coin field) → stake console
-  (CURRENT STAKE, −/+ stepper, tier chips FREE…1K, PLAY NOW GoldPlate,
-  "Winner takes 🪙 2×") → stats row (total wins / win rate / biggest win) →
-  RECENT WIN ticker → CLIMB THE RANKS → DAILY BONUS → practice-bot link.
+- **Home is ONE SCREEN — no scrolling, ever.** Header (avatar + rank chip |
+  BALANCE pill) → hero (RPS logo, marker tagline, glow arch, ✊✋✌️ on
+  plinths, coin field; hero flexes to absorb spare height) → stake console
+  (CURRENT STAKE + "WINNER TAKES 🪙2×" inline, −/+ stepper, tier chips
+  FREE…1K, PLAY NOW GoldPlate) → stats row (total wins / win rate /
+  biggest win) → single-line rotating RECENT WIN ticker → bottom row
+  (compact DAILY BONUS + practice-bot card). `useWindowDimensions` compact
+  mode kicks in under 780px height. The web app requests true fullscreen
+  on the login/signup/play taps (src/fullscreen.ts).
 - **Tab bar** (custom, `(main)/_layout.tsx`): RANKS · FRIENDS · [raised
   gold fist PLAY] · WALLET · PROFILE. Profile icon = the user's avatar in a
   circle. Center fist navigates home.
 - **Ranks**: Olympic podium (2·1·3, crown on #1, gold/silver/bronze rings)
   above the list.
 - **Wallet**: bankroll hero + typed transaction feed (green +/red −).
+
+## The reveal (classic skin) — staged like a real RPS game
+
+RevealScene timeline (total ≈2.75s, inside the server's 3s reveal window —
+never exceed it): three synced fist pumps with ticks (0–1.02s) → both
+throws snap out SIMULTANEOUSLY (reveal sound) → a held ~700ms beat, hands
+frozen → the winning hand lunges and SMASHES the loser (white flash,
+screen shake, smash.wav; loser tumbles away crushed) → verdict banner
+slams in. Draws bump knuckles and bounce apart. The skin's RevealScene
+owns ALL reveal sounds. On 'ended', the VICTORY/DEFEAT stamp lands first;
+PayoutCelebration mounts 550ms later.
+
+## Voice chat (src/voice.ts)
+
+PvP matches open a WebRTC audio line (p1 offers, p2 answers) signaled via
+'voice:signal' relay; live from match start through the end screen, torn
+down on leaving the match screen. Default ON; toggle + Quiet/Normal/Loud
+volume in Settings; mic mute chip in the match header (accessibilityLabel
+"Mic toggle"). Web only — silent no-op on native. Debug: window.__rpsVoice.
 
 ## Motion standards (Reanimated; must work on web)
 

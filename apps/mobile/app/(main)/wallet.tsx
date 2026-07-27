@@ -15,6 +15,7 @@ const TX_META: Record<TransactionType, { icon: string; label: string }> = {
   wager_refund: { icon: '↩️', label: 'Stake returned' },
   payout: { icon: '💰', label: 'Pot collected' },
   daily_topup: { icon: '☀️', label: 'Daily bonus' },
+  social_bonus: { icon: '📣', label: 'Share bonus' },
 };
 
 function timeLabel(iso: string): string {

@@ -82,6 +82,17 @@ export interface QueueStatusPayload {
   waitingSince: number;
 }
 
+/**
+ * Opaque WebRTC signaling blob (SDP offer/answer or ICE candidate) relayed
+ * verbatim between the two participants of a match. The server never
+ * inspects it. Voice stays available through the end screen for the same
+ * window as end-screen emotes.
+ */
+export interface VoiceSignalPayload {
+  matchId: string;
+  data: unknown;
+}
+
 export interface ClientToServerEvents {
   'queue:join': (p: { mode: 'ranked' | 'casual'; wagerTier?: WagerTier }, ack: (r: { ok: boolean; error?: string }) => void) => void;
   'queue:leave': () => void;
@@ -94,6 +105,7 @@ export interface ClientToServerEvents {
   'match:rematch': (p: { matchId: string }, ack: (r: { ok: boolean; error?: string }) => void) => void;
   'match:forfeit': (p: { matchId: string }) => void;
   'match:resync': (ack: (state: MatchStatePayload | null) => void) => void;
+  'voice:signal': (p: VoiceSignalPayload) => void;
 }
 
 export interface ServerToClientEvents {
@@ -108,4 +120,5 @@ export interface ServerToClientEvents {
   'challenge:result': (p: { challengeId: string; accepted: boolean }) => void;
   'rematch:offered': (p: { matchId: string }) => void;
   'friend:presence': (p: { userId: number; online: boolean }) => void;
+  'voice:signal': (p: VoiceSignalPayload) => void;
 }

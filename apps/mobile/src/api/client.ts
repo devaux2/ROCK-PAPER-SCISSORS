@@ -9,6 +9,8 @@ import type {
   TopupResponse,
   MatchHistoryRow,
   RecentWinRow,
+  SocialBonusResponse,
+  SocialPlatform,
 } from '@rps/shared';
 
 export class ApiError extends Error {
@@ -66,6 +68,11 @@ export const api = {
   leaderboard: (window: LeaderboardWindow) => request<LeaderboardRow[]>(`/leaderboards?window=${window}`),
   winsFeed: () => request<RecentWinRow[]>('/leaderboards/feed'),
   dailyTopup: () => request<TopupResponse>('/economy/daily-topup', { method: 'POST' }),
+  socialBonus: (platform: SocialPlatform, url: string) =>
+    request<SocialBonusResponse>('/economy/social-bonus', {
+      method: 'POST',
+      body: JSON.stringify({ platform, url }),
+    }),
   history: () => request<TransactionRow[]>('/economy/history'),
   matchHistory: () => request<MatchHistoryRow[]>('/matches/history'),
 };

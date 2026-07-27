@@ -52,13 +52,24 @@ CREATE TABLE IF NOT EXISTS transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id),
   amount INTEGER NOT NULL,
-  type TEXT NOT NULL CHECK(type IN ('signup_bonus','wager_escrow','wager_refund','payout','daily_topup')),
+  type TEXT NOT NULL CHECK(type IN ('signup_bonus','wager_escrow','wager_refund','payout','daily_topup','social_bonus')),
   match_id TEXT,
   balance_after INTEGER NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_time ON transactions(created_at);
+
+-- Share-to-earn: one claimed post per user per platform per UTC day; a
+-- given post URL can only ever be claimed once, by anyone.
+CREATE TABLE IF NOT EXISTS social_claims (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  platform TEXT NOT NULL CHECK(platform IN ('x','facebook')),
+  url TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_social_claims_user ON social_claims(user_id, platform, created_at);
 
 CREATE TABLE IF NOT EXISTS elo_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -16,4 +16,10 @@ export type TransactionType =
   | 'wager_escrow'
   | 'wager_refund'
   | 'payout'
-  | 'daily_topup';
+  | 'daily_topup'
+  | 'social_bonus';
+
+/** Coins granted for a verified share post, per platform per UTC day. */
+export const SOCIAL_BONUS_COINS = 250;
+export const SOCIAL_PLATFORMS = ['x', 'facebook'] as const;
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];

@@ -10,6 +10,7 @@ import type {
 import { useMatchStore } from '../stores/matchStore';
 import { useFriendsStore } from '../stores/friendsStore';
 import { useAuthStore } from '../stores/authStore';
+import { bindVoiceSocket, unbindVoiceSocket } from '../voice';
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -45,11 +46,13 @@ export function connectSocket(baseUrl: string, token: string): GameSocket {
       if (state) match().onResync(state);
     });
   });
+  bindVoiceSocket(socket);
 
   return socket;
 }
 
 export function disconnectSocket(): void {
+  unbindVoiceSocket();
   socket?.disconnect();
   socket = null;
 }

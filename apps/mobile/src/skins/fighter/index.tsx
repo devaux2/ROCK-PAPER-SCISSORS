@@ -16,6 +16,7 @@ import type { Skin, MoveButtonProps, RevealSceneProps, MatchEndSceneProps } from
 import { fighterMeta } from './meta';
 import { theme } from '../../theme';
 import { PressableScale, DisplayText } from '../../components/ui';
+import { playSound } from '../../sound';
 
 function MoveButton({ move, disabled, selected, onPress }: MoveButtonProps) {
   const m = fighterMeta.moves[move];
@@ -72,7 +73,14 @@ function RevealScene({ myMove, oppMove, outcome, onDone }: RevealSceneProps) {
 
   useEffect(() => {
     const steps: Array<'3' | '2' | '1' | 'FIGHT!'> = ['3', '2', '1', 'FIGHT!'];
-    const timers = steps.map((step, i) => setTimeout(() => setCountdown(step), i * 300));
+    const timers = steps.map((step, i) =>
+      setTimeout(() => {
+        setCountdown(step);
+        playSound(step === 'FIGHT!' ? 'reveal' : 'tick');
+      }, i * 300)
+    );
+    // The blow lands ~150ms into the attack (see hitFlash/shakeX delays).
+    const impact = setTimeout(() => playSound('smash'), steps.length * 300 + 220 + 150);
     const attack = setTimeout(() => {
       setCountdown(null);
       // Both attack; springs carry them into contact along a rising arc.
@@ -103,6 +111,7 @@ function RevealScene({ myMove, oppMove, outcome, onDone }: RevealSceneProps) {
     }, steps.length * 300 + 220);
     return () => {
       timers.forEach(clearTimeout);
+      clearTimeout(impact);
       clearTimeout(attack);
     };
   }, [myLunge, oppLunge, hitFlash, shakeX, recoil, done, onDone]);

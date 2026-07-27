@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
+  FadeIn,
   FadeInDown,
   useAnimatedStyle,
   useSharedValue,
@@ -18,9 +19,10 @@ import { useSettingsStore } from '../../src/stores/settingsStore';
 import { game } from '../../src/socket/socket';
 import { api } from '../../src/api/client';
 import { playSound, startMusic } from '../../src/sound';
+import { requestAppFullscreen } from '../../src/fullscreen';
 import { Avatar } from '../../src/components/Avatar';
 import { DisplayText, ErrorText, MarkerText, PressableScale, StatNumber } from '../../src/components/ui';
-import { CoinField, GoldPlate, LightPool, ShineSweep } from '../../src/components/bling';
+import { CoinField, GoldPlate, LightPool } from '../../src/components/bling';
 import { rankTitle } from '../../src/rank';
 import { theme } from '../../src/theme';
 
@@ -42,8 +44,15 @@ function timeAgo(iso: string): string {
   return `${Math.round(hours / 24)}d ago`;
 }
 
+/**
+ * The one-screen casino floor: everything that matters — who you are, what
+ * you hold, what you're staking, proof people are winning — visible at once
+ * with zero scrolling.
+ */
 export default function Home() {
   const router = useRouter();
+  const { height } = useWindowDimensions();
+  const compact = height < 780;
   const user = useAuthStore((s) => s.user);
   const refreshMe = useAuthStore((s) => s.refreshMe);
   const startQueueing = useMatchStore((s) => s.startQueueing);
@@ -72,6 +81,7 @@ export default function Home() {
 
   async function play() {
     setError(null);
+    requestAppFullscreen();
     startMusic();
     playSound('click');
     const ranked = wager > 0;
@@ -96,177 +106,150 @@ export default function Home() {
 
   return (
     <View style={styles.root}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* ---- header: who you are / what you hold ---- */}
-        <Animated.View entering={FadeInDown.springify()} style={styles.headerRow}>
-          <PressableScale style={styles.identity} onPress={() => router.push('/profile')}>
-            <View style={styles.avatarRing}>
-              <Avatar avatar={user?.avatar ?? 'avatar_01'} size={44} />
-            </View>
-            <View style={{ marginLeft: 10 }}>
-              <Text style={styles.headerName}>{user?.username ?? ''}</Text>
-              <View style={styles.rankChip}>
-                <Text style={styles.rankChipText}>🥇 {rankTitle(user?.wins ?? 0)}</Text>
-              </View>
-            </View>
-          </PressableScale>
-          <PressableScale
-            accessibilityLabel="Balance"
-            style={styles.balancePill}
-            onPress={() => router.push('/wallet')}
-          >
-            <Text style={styles.balanceLabel}>BALANCE</Text>
-            <StatNumber value={coins} size={22} color={theme.accent} prefix="🪙 " />
-          </PressableScale>
-        </Animated.View>
-
-        {/* ---- hero: the three hands under the arch ---- */}
-        <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.hero}>
-          <LightPool size={340} style={{ top: -20, alignSelf: 'center' }} />
-          <CoinField count={10} />
-          <DisplayText size={84} color={theme.text} style={[styles.logo, theme.textGlow('rgba(255,201,60,0.55)', 24)]}>
-            RPS
-          </DisplayText>
-          <MarkerText size={20} style={[styles.tagline, theme.textGlow('rgba(255,178,32,0.6)', 12)]}>
-            Real money. Real wins.
-          </MarkerText>
-          <View style={styles.arch} pointerEvents="none" />
-          <View style={styles.handsRow}>
-            <HandPedestal emoji="✊" label="Rock" sub="Crush it" />
-            <HandPedestal emoji="✋" label="Paper" sub="Outsmart" hero />
-            <HandPedestal emoji="✌️" label="Scissors" sub="Cut it" />
+      {/* ---- header: who you are / what you hold ---- */}
+      <Animated.View entering={FadeInDown.springify()} style={styles.headerRow}>
+        <PressableScale style={styles.identity} onPress={() => router.push('/profile')}>
+          <View style={styles.avatarRing}>
+            <Avatar avatar={user?.avatar ?? 'avatar_01'} size={40} />
           </View>
-        </Animated.View>
-
-        {/* ---- the stake console ---- */}
-        <Animated.View entering={FadeInDown.delay(110).springify()} style={styles.stakeCard}>
-          <View style={styles.stakeHeader}>
-            <Text style={styles.stakeHeaderIcon}>🪙</Text>
-            <Text style={styles.stakeHeaderText}>CURRENT STAKE</Text>
-          </View>
-
-          <View style={styles.stepperRow}>
-            <StepButton label="−" disabled={stakeIndex === 0} onPress={() => step(-1)} />
-            {wager === 0 ? (
-              <DisplayText size={56} color={theme.text} style={styles.stakeValue}>
-                Free
-              </DisplayText>
-            ) : (
-              <StatNumber value={wager} size={64} color={theme.accent} style={styles.stakeValue} />
-            )}
-            <StepButton label="+" disabled={stakeIndex === STAKES.length - 1} onPress={() => step(1)} />
-          </View>
-
-          <View style={styles.chipRow}>
-            {STAKES.map((stake) => {
-              const selected = stake === wager;
-              const canAfford = stake === 0 || coins >= stake;
-              return (
-                <PressableScale
-                  key={stake}
-                  disabled={!canAfford}
-                  onPress={() => {
-                    playSound('click');
-                    setWager(stake);
-                  }}
-                  style={[styles.chip, selected && styles.chipSelected, !canAfford && { opacity: 0.35 }]}
-                >
-                  <Text style={[styles.chipText, selected && { color: theme.accent }]}>
-                    {chipLabel(stake)}
-                  </Text>
-                </PressableScale>
-              );
-            })}
-          </View>
-
-          <PressableScale
-            accessibilityLabel="Play now"
-            disabled={!affordable}
-            onPress={play}
-            style={{ marginTop: 14 }}
-          >
-            <GoldPlate disabled={!affordable}>
-              <View style={styles.playInner}>
-                <DisplayText size={34} color={theme.accentText}>
-                  {wager === 0 ? 'Play free' : 'Play now'}
-                </DisplayText>
-                <Text style={styles.playSub}>
-                  {wager === 0 ? 'CASUAL MATCH · NO STAKES' : 'FIND AN OPPONENT'}
-                </Text>
-              </View>
-            </GoldPlate>
-          </PressableScale>
-
-          {wager > 0 && affordable && (
-            <Text style={styles.potHint}>
-              Winner takes <Text style={{ color: theme.accent, fontWeight: '900' }}>🪙 {wager * 2}</Text>
-            </Text>
-          )}
-          {!affordable && (
-            <Text style={[styles.potHint, { color: theme.danger }]}>
-              You need 🪙 {wager} to enter this bracket
-            </Text>
-          )}
-          <ErrorText error={error} />
-        </Animated.View>
-
-        {/* ---- your numbers ---- */}
-        <Animated.View entering={FadeInDown.delay(160).springify()} style={styles.statsRow}>
-          <StatCell icon="🏆" label="Total wins">
-            <StatNumber value={user?.wins ?? 0} size={26} color={theme.accent} />
-          </StatCell>
-          <StatCell icon="🎯" label="Win rate">
-            <StatNumber
-              value={Math.round((user?.winRate ?? 0) * 100)}
-              suffix="%"
-              size={26}
-              color={theme.accent}
-            />
-          </StatCell>
-          <StatCell icon="💵" label="Biggest win">
-            <StatNumber value={user?.biggestWin ?? 0} size={26} color={theme.accent} />
-          </StatCell>
-        </Animated.View>
-
-        {/* ---- proof other people are winning ---- */}
-        {wins.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.ticker}>
-            {wins.slice(0, 3).map((w, i) => (
-              <View key={`${w.username}-${w.at}-${i}`} style={[styles.tickerRow, i > 0 && styles.tickerRowBorder]}>
-                <Text style={styles.tickerBadge}>RECENT WIN</Text>
-                <Text style={styles.tickerName} numberOfLines={1}>
-                  {w.username}
-                </Text>
-                <Text style={styles.tickerAmount}>won 🪙 {w.amount}</Text>
-                <Text style={styles.tickerTime}>{timeAgo(w.at)}</Text>
-              </View>
-            ))}
-          </Animated.View>
-        )}
-
-        {/* ---- climb the ranks ---- */}
-        <Animated.View entering={FadeInDown.delay(240).springify()}>
-          <PressableScale onPress={() => router.push('/leaderboard')} style={styles.ranksCard}>
-            <Text style={styles.ranksShield}>🛡️</Text>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <DisplayText size={20} color={theme.text}>
-                Climb the ranks
-              </DisplayText>
-              <Text style={styles.ranksSub}>Win more. Rank up.{'\n'}Take the top spot.</Text>
+          <View style={{ marginLeft: 10 }}>
+            <Text style={styles.headerName}>{user?.username ?? ''}</Text>
+            <View style={styles.rankChip}>
+              <Text style={styles.rankChipText}>🥇 {rankTitle(user?.wins ?? 0)}</Text>
             </View>
-            <View style={styles.ranksBtn}>
-              <Text style={styles.ranksBtnText}>VIEW RANKS</Text>
-            </View>
-          </PressableScale>
-        </Animated.View>
-
-        {/* ---- daily bonus ---- */}
-        <DailyBonusCard coins={coins} onClaimed={refreshMe} />
-
-        <PressableScale onPress={playBot} style={styles.botLink}>
-          <Text style={styles.botLinkText}>🤖 Practice vs bot — free</Text>
+          </View>
         </PressableScale>
-      </ScrollView>
+        <PressableScale
+          accessibilityLabel="Balance"
+          style={styles.balancePill}
+          onPress={() => router.push('/wallet')}
+        >
+          <Text style={styles.balanceLabel}>BALANCE</Text>
+          <StatNumber value={coins} size={20} color={theme.accent} prefix="🪙 " />
+        </PressableScale>
+      </Animated.View>
+
+      {/* ---- hero: the hands under the arch ---- */}
+      <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.hero}>
+        <LightPool size={compact ? 240 : 300} style={{ top: -30, alignSelf: 'center' }} />
+        <CoinField count={compact ? 6 : 8} />
+        <View style={styles.arch} pointerEvents="none" />
+        <DisplayText
+          size={compact ? 44 : 56}
+          color={theme.text}
+          style={[styles.logo, theme.textGlow('rgba(255,201,60,0.55)', 20)]}
+        >
+          RPS
+        </DisplayText>
+        <MarkerText
+          size={compact ? 14 : 17}
+          style={[styles.tagline, theme.textGlow('rgba(255,178,32,0.6)', 10)]}
+        >
+          Real money. Real wins.
+        </MarkerText>
+        <View style={styles.handsRow}>
+          <HandPedestal emoji="✊" label="Rock" sub="Crush it" compact={compact} />
+          <HandPedestal emoji="✋" label="Paper" sub="Outsmart" hero compact={compact} />
+          <HandPedestal emoji="✌️" label="Scissors" sub="Cut it" compact={compact} />
+        </View>
+      </Animated.View>
+
+      {/* ---- the stake console ---- */}
+      <Animated.View entering={FadeInDown.delay(110).springify()} style={styles.stakeCard}>
+        <View style={styles.stakeHeader}>
+          <Text style={styles.stakeHeaderIcon}>🪙</Text>
+          <Text style={styles.stakeHeaderText}>CURRENT STAKE</Text>
+          {wager > 0 && affordable && (
+            <Text style={styles.stakeHeaderWin}> · WINNER TAKES 🪙 {wager * 2}</Text>
+          )}
+        </View>
+
+        <View style={styles.stepperRow}>
+          <StepButton label="−" disabled={stakeIndex === 0} onPress={() => step(-1)} />
+          {wager === 0 ? (
+            <DisplayText size={compact ? 38 : 46} color={theme.text} style={styles.stakeValue}>
+              Free
+            </DisplayText>
+          ) : (
+            <StatNumber value={wager} size={compact ? 44 : 54} color={theme.accent} style={styles.stakeValue} />
+          )}
+          <StepButton label="+" disabled={stakeIndex === STAKES.length - 1} onPress={() => step(1)} />
+        </View>
+
+        <View style={styles.chipRow}>
+          {STAKES.map((stake) => {
+            const selected = stake === wager;
+            const canAfford = stake === 0 || coins >= stake;
+            return (
+              <PressableScale
+                key={stake}
+                disabled={!canAfford}
+                onPress={() => {
+                  playSound('click');
+                  setWager(stake);
+                }}
+                style={[styles.chip, selected && styles.chipSelected, !canAfford && { opacity: 0.35 }]}
+              >
+                <Text style={[styles.chipText, selected && { color: theme.accent }]}>
+                  {chipLabel(stake)}
+                </Text>
+              </PressableScale>
+            );
+          })}
+        </View>
+
+        <PressableScale
+          accessibilityLabel="Play now"
+          disabled={!affordable}
+          onPress={play}
+          style={{ marginTop: 10 }}
+        >
+          <GoldPlate disabled={!affordable}>
+            <View style={styles.playInner}>
+              <DisplayText size={compact ? 26 : 30} color={theme.accentText}>
+                {wager === 0 ? 'Play free' : 'Play now'}
+              </DisplayText>
+              <Text style={styles.playSub}>
+                {wager === 0 ? 'CASUAL MATCH · NO STAKES' : 'FIND AN OPPONENT'}
+              </Text>
+            </View>
+          </GoldPlate>
+        </PressableScale>
+        {!affordable && (
+          <Text style={styles.brokeHint}>You need 🪙 {wager} to enter this bracket</Text>
+        )}
+        <ErrorText error={error} />
+      </Animated.View>
+
+      {/* ---- your numbers ---- */}
+      <Animated.View entering={FadeInDown.delay(160).springify()} style={styles.statsRow}>
+        <StatCell icon="🏆" label="Total wins">
+          <StatNumber value={user?.wins ?? 0} size={22} color={theme.accent} />
+        </StatCell>
+        <StatCell icon="🎯" label="Win rate">
+          <StatNumber
+            value={Math.round((user?.winRate ?? 0) * 100)}
+            suffix="%"
+            size={22}
+            color={theme.accent}
+          />
+        </StatCell>
+        <StatCell icon="💵" label="Biggest win">
+          <StatNumber value={user?.biggestWin ?? 0} size={22} color={theme.accent} />
+        </StatCell>
+      </Animated.View>
+
+      {/* ---- proof other people are winning (one line, rotating) ---- */}
+      <WinTicker wins={wins} />
+
+      {/* ---- daily bonus + practice, one row ---- */}
+      <Animated.View entering={FadeInDown.delay(240).springify()} style={styles.bottomRow}>
+        <DailyBonusCard coins={coins} onClaimed={refreshMe} />
+        <PressableScale onPress={playBot} style={styles.botCard}>
+          <Text style={{ fontSize: 18 }}>🤖</Text>
+          <Text style={styles.botCardText}>Practice vs bot — free</Text>
+        </PressableScale>
+      </Animated.View>
     </View>
   );
 }
@@ -277,11 +260,13 @@ function HandPedestal({
   label,
   sub,
   hero,
+  compact,
 }: {
   emoji: string;
   label: string;
   sub: string;
   hero?: boolean;
+  compact?: boolean;
 }) {
   const bob = useSharedValue(0);
   useEffect(() => {
@@ -293,23 +278,20 @@ function HandPedestal({
       -1
     );
   }, [bob, hero]);
-  const animated = useAnimatedStyle(() => ({ transform: [{ translateY: bob.value * -5 }] }));
+  const animated = useAnimatedStyle(() => ({ transform: [{ translateY: bob.value * -4 }] }));
+  const size = compact ? (hero ? 40 : 32) : hero ? 50 : 40;
   return (
-    <View style={[styles.pedestalWrap, hero && { marginTop: -18 }]}>
+    <View style={[styles.pedestalWrap, hero && { marginTop: -12 }]}>
       <Animated.Text
-        style={[
-          { fontSize: hero ? 64 : 52 },
-          theme.textGlow('rgba(255,178,32,0.75)', 18),
-          animated,
-        ]}
+        style={[{ fontSize: size }, theme.textGlow('rgba(255,178,32,0.75)', 14), animated]}
       >
         {emoji}
       </Animated.Text>
-      <View style={[styles.plinth, hero && styles.plinthHero]}>
-        <DisplayText size={15} color={theme.text}>
+      <View style={styles.plinth}>
+        <DisplayText size={12} color={theme.text}>
           {label}
         </DisplayText>
-        <Text style={styles.plinthSub}>{sub}</Text>
+        {!compact && <Text style={styles.plinthSub}>{sub}</Text>}
       </View>
     </View>
   );
@@ -331,7 +313,7 @@ function StepButton({
       onPress={onPress}
       style={[styles.stepBtn, disabled && { opacity: 0.3 }]}
     >
-      <DisplayText size={30} color={theme.accent}>
+      <DisplayText size={26} color={theme.accent}>
         {label}
       </DisplayText>
     </PressableScale>
@@ -356,47 +338,67 @@ function StatCell({
   );
 }
 
+/** Single-line ticker cycling through the latest pots collected. */
+function WinTicker({ wins }: { wins: RecentWinRow[] }) {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (wins.length < 2) return;
+    const timer = setInterval(() => setIndex((i) => (i + 1) % wins.length), 3200);
+    return () => clearInterval(timer);
+  }, [wins.length]);
+  if (wins.length === 0) {
+    return (
+      <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.ticker}>
+        <Text style={styles.tickerBadge}>LIVE</Text>
+        <Text style={styles.tickerName}>Pots land here the second someone wins one…</Text>
+      </Animated.View>
+    );
+  }
+  const w = wins[index % wins.length];
+  return (
+    <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.ticker}>
+      <Text style={styles.tickerBadge}>RECENT WIN</Text>
+      <Animated.View key={`${w.username}-${w.at}`} entering={FadeIn.duration(360)} style={styles.tickerBody}>
+        <Text style={styles.tickerName} numberOfLines={1}>
+          {w.username}
+        </Text>
+        <Text style={styles.tickerAmount}>won 🪙 {w.amount}</Text>
+        <Text style={styles.tickerTime}>{timeAgo(w.at)}</Text>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
 function DailyBonusCard({ coins, onClaimed }: { coins: number; onClaimed: () => Promise<void> | void }) {
   const eligible = coins < DAILY_TOPUP_THRESHOLD;
   const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
 
   async function claim() {
-    setErr(null);
     setMsg(null);
     try {
       const res = await api.dailyTopup();
       playSound('coins');
-      setMsg(`+🪙 ${res.granted} claimed!`);
+      setMsg(`+🪙 ${res.granted}!`);
       await onClaimed();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Top-up failed');
+      setMsg(e instanceof Error ? e.message : 'Top-up failed');
     }
   }
 
   return (
-    <Animated.View entering={FadeInDown.delay(280).springify()} style={styles.bonusCard}>
-      {eligible && <ShineSweep period={3600} />}
+    <View style={[styles.bonusCard, !eligible && { opacity: 0.55 }]}>
       <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <DisplayText size={18} color={theme.accent}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <DisplayText size={14} color={theme.accent}>
             Daily bonus
           </DisplayText>
           {eligible && <View style={styles.bonusDot} />}
         </View>
-        <Text style={styles.bonusSub}>
-          {eligible
-            ? 'Refill to 🪙 100 — claim it while you can!'
-            : `Drops when your balance falls below 🪙 ${DAILY_TOPUP_THRESHOLD}`}
+        <Text style={styles.bonusSub} numberOfLines={1}>
+          {msg ?? (eligible ? 'Refill to 🪙 100' : `Below 🪙 ${DAILY_TOPUP_THRESHOLD} only`)}
         </Text>
-        {msg && <Text style={styles.bonusMsg}>{msg}</Text>}
-        {err && <Text style={styles.bonusErr}>{err}</Text>}
       </View>
-      <PressableScale
-        disabled={!eligible}
-        onPress={claim}
-        style={[styles.claimBtn, !eligible && { opacity: 0.35 }]}
-      >
+      <PressableScale disabled={!eligible} onPress={claim} style={styles.claimBtn}>
         <LinearGradient
           colors={theme.gradients.cta}
           start={{ x: 0, y: 0 }}
@@ -406,56 +408,61 @@ function DailyBonusCard({ coins, onClaimed }: { coins: number; onClaimed: () => 
           <Text style={styles.claimBtnText}>CLAIM</Text>
         </LinearGradient>
       </PressableScale>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.bg },
-  content: { padding: 16, paddingTop: 54, paddingBottom: 110 },
+  root: {
+    flex: 1,
+    backgroundColor: theme.bg,
+    paddingHorizontal: 14,
+    paddingTop: 46,
+    paddingBottom: 8,
+  },
 
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   identity: { flexDirection: 'row', alignItems: 'center' },
   avatarRing: {
     borderWidth: 2,
     borderColor: theme.accent,
-    borderRadius: 26,
+    borderRadius: 24,
     padding: 2,
     ...theme.glow('#FFB020', 10),
   },
-  headerName: { color: theme.text, fontWeight: '900', fontSize: 16 },
+  headerName: { color: theme.text, fontWeight: '900', fontSize: 15 },
   rankChip: {
     alignSelf: 'flex-start',
     backgroundColor: theme.bgRaised,
     borderWidth: 1,
     borderColor: theme.goldBorder,
     borderRadius: theme.radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    marginTop: 2,
   },
-  rankChipText: { color: theme.textDim, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  rankChipText: { color: theme.textDim, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   balancePill: {
     alignItems: 'center',
     backgroundColor: theme.bgRaised,
     borderWidth: 1.5,
     borderColor: theme.goldBorder,
     borderRadius: theme.radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     ...theme.glow('#FFB020', 8),
   },
-  balanceLabel: { color: theme.textDim, fontSize: 9, fontWeight: '900', letterSpacing: 2 },
+  balanceLabel: { color: theme.textDim, fontSize: 8, fontWeight: '900', letterSpacing: 2 },
 
-  hero: { alignItems: 'center', marginTop: 18, paddingBottom: 6 },
+  hero: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 150 },
   logo: { textAlign: 'center' },
   tagline: { textAlign: 'center', marginTop: -2, transform: [{ rotate: '-2deg' }] },
   arch: {
     position: 'absolute',
-    bottom: -40,
-    width: 320,
-    height: 320,
-    borderRadius: 160,
+    bottom: -30,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
     borderWidth: 1.5,
     borderColor: 'rgba(255,178,32,0.30)',
     alignSelf: 'center',
@@ -465,8 +472,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    gap: 14,
-    marginTop: 18,
+    gap: 12,
+    marginTop: 10,
   },
   pedestalWrap: { alignItems: 'center' },
   plinth: {
@@ -477,36 +484,36 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderTopColor: theme.accent,
     borderRadius: theme.radius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginTop: 6,
-    minWidth: 92,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 5,
+    minWidth: 80,
   },
-  plinthHero: { minWidth: 100, paddingVertical: 8 },
-  plinthSub: { color: theme.textDim, fontSize: 10, fontWeight: '700', marginTop: 1 },
+  plinthSub: { color: theme.textDim, fontSize: 9, fontWeight: '700', marginTop: 1 },
 
   stakeCard: {
     backgroundColor: theme.panel,
     borderWidth: 1.5,
     borderColor: theme.goldBorder,
     borderRadius: theme.radius.xl,
-    padding: 16,
-    marginTop: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 8,
     ...theme.glow('#FFB020', 12),
   },
-  stakeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  stakeHeaderIcon: { fontSize: 14 },
-  stakeHeaderText: { color: theme.text, fontSize: 12, fontWeight: '900', letterSpacing: 3 },
+  stakeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  stakeHeaderIcon: { fontSize: 12 },
+  stakeHeaderText: { color: theme.text, fontSize: 11, fontWeight: '900', letterSpacing: 2.5 },
+  stakeHeaderWin: { color: theme.green, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   stepperRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
   },
-  stakeValue: { textAlign: 'center', minWidth: 150 },
+  stakeValue: { textAlign: 'center', minWidth: 130 },
   stepBtn: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     borderRadius: theme.radius.md,
     backgroundColor: theme.bgRaised,
     borderWidth: 1.5,
@@ -514,21 +521,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
+  chipRow: { flexDirection: 'row', gap: 5, marginTop: 6 },
   chip: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 9,
+    paddingVertical: 7,
     borderRadius: theme.radius.sm,
     backgroundColor: theme.bgRaised,
     borderWidth: 1.5,
     borderColor: theme.panelBorder,
   },
   chipSelected: { borderColor: theme.accent, ...theme.glow('#FFB020', 8) },
-  chipText: { color: theme.textDim, fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
-  playInner: { alignItems: 'center', paddingVertical: 16, alignSelf: 'stretch' },
-  playSub: { color: 'rgba(26,17,2,0.65)', fontSize: 11, fontWeight: '900', letterSpacing: 3, marginTop: 2 },
-  potHint: { color: theme.textDim, textAlign: 'center', marginTop: 10, fontWeight: '700', fontSize: 13 },
+  chipText: { color: theme.textDim, fontWeight: '900', fontSize: 12, letterSpacing: 0.5 },
+  playInner: { alignItems: 'center', paddingVertical: 11, alignSelf: 'stretch' },
+  playSub: { color: 'rgba(26,17,2,0.65)', fontSize: 10, fontWeight: '900', letterSpacing: 2.5, marginTop: 1 },
+  brokeHint: {
+    color: theme.danger,
+    textAlign: 'center',
+    marginTop: 8,
+    fontWeight: '700',
+    fontSize: 12,
+  },
 
   statsRow: {
     flexDirection: 'row',
@@ -536,78 +549,69 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.panelBorder,
     borderRadius: theme.radius.lg,
-    marginTop: 14,
-    paddingVertical: 12,
+    marginTop: 8,
+    paddingVertical: 8,
   },
-  statCell: { flex: 1, alignItems: 'center', gap: 2 },
-  statIcon: { fontSize: 18 },
-  statLabel: { color: theme.textDim, fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
+  statCell: { flex: 1, alignItems: 'center', gap: 1 },
+  statIcon: { fontSize: 15 },
+  statLabel: { color: theme.textDim, fontSize: 8, fontWeight: '900', letterSpacing: 1.2 },
 
   ticker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: theme.bgRaised,
     borderWidth: 1,
     borderColor: theme.panelBorder,
     borderRadius: theme.radius.md,
-    marginTop: 10,
+    marginTop: 8,
     paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  tickerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, gap: 8 },
-  tickerRowBorder: { borderTopWidth: 1, borderTopColor: theme.panelBorder },
+  tickerBody: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   tickerBadge: { color: theme.green, fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
-  tickerName: { color: theme.text, fontWeight: '800', fontSize: 13, flex: 1 },
-  tickerAmount: { color: theme.accent, fontWeight: '900', fontSize: 13 },
-  tickerTime: { color: theme.textDim, fontSize: 11 },
+  tickerName: { color: theme.text, fontWeight: '800', fontSize: 12, flexShrink: 1 },
+  tickerAmount: { color: theme.accent, fontWeight: '900', fontSize: 12 },
+  tickerTime: { color: theme.textDim, fontSize: 10, marginLeft: 'auto' },
 
-  ranksCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.panel,
-    borderWidth: 1,
-    borderColor: theme.panelBorder,
-    borderRadius: theme.radius.lg,
-    padding: 14,
-    marginTop: 10,
-  },
-  ranksShield: { fontSize: 34 },
-  ranksSub: { color: theme.textDim, fontSize: 12, marginTop: 2, lineHeight: 16 },
-  ranksBtn: {
-    borderWidth: 1.5,
-    borderColor: theme.accent,
-    borderRadius: theme.radius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  ranksBtnText: { color: theme.accent, fontWeight: '900', fontSize: 11, letterSpacing: 1.5 },
-
+  bottomRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   bonusCard: {
+    flex: 1.3,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.panel,
     borderWidth: 1.5,
     borderColor: theme.goldBorder,
-    borderRadius: theme.radius.lg,
-    padding: 14,
-    marginTop: 10,
-    overflow: 'hidden',
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   bonusDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
     backgroundColor: theme.danger,
     ...theme.glow(theme.danger, 6),
   },
-  bonusSub: { color: theme.textDim, fontSize: 12, marginTop: 3 },
-  bonusMsg: { color: theme.green, fontWeight: '800', marginTop: 4, fontSize: 12 },
-  bonusErr: { color: theme.danger, fontWeight: '700', marginTop: 4, fontSize: 12 },
-  claimBtn: { marginLeft: 12, borderRadius: theme.radius.sm, ...theme.glow('#FFB020', 10) },
+  bonusSub: { color: theme.textDim, fontSize: 10, marginTop: 1 },
+  claimBtn: { marginLeft: 8, borderRadius: theme.radius.sm, ...theme.glow('#FFB020', 8) },
   claimBtnInner: {
     borderRadius: theme.radius.sm,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  claimBtnText: { color: theme.accentText, fontWeight: '900', fontSize: 13, letterSpacing: 1.5 },
-
-  botLink: { alignSelf: 'center', marginTop: 16, padding: 8 },
-  botLinkText: { color: theme.textDim, fontWeight: '700', fontSize: 13 },
+  claimBtnText: { color: theme.accentText, fontWeight: '900', fontSize: 11, letterSpacing: 1 },
+  botCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: theme.panel,
+    borderWidth: 1,
+    borderColor: theme.panelBorder,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 8,
+  },
+  botCardText: { color: theme.textDim, fontWeight: '800', fontSize: 11, flexShrink: 1 },
 });

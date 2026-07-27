@@ -144,6 +144,32 @@ export function createSocketServer(httpServer: HttpServer, ctx: AppContext): Rea
       presence.get(oppId)?.send('match:emote', { matchId: p.matchId, emoteId: p.emoteId });
     });
 
+    socket.on('voice:signal', (p) => {
+      if (!p || typeof p.matchId !== 'string' || p.data === undefined) return;
+      // Blobs are opaque but bounded — an SDP is a few KB at most. stringify
+      // is wrapped because a maliciously deep object throws RangeError, and
+      // an uncaught throw here would take the whole process down.
+      let size: number;
+      try {
+        size = JSON.stringify(p.data).length;
+      } catch {
+        return;
+      }
+      if (size > 32_768) return;
+      const engine = matches.engineById(p.matchId);
+      if (engine && engine.hasPlayer(userId)) {
+        engine.opponentOf(userId)?.send('voice:signal', { matchId: p.matchId, data: p.data });
+        return;
+      }
+      // Keep the line open on the end screen (and let trailing ICE
+      // candidates through after a lightning-fast sudden-death finish).
+      const finished = matches.finishedById(p.matchId);
+      if (!finished || !finished.userIds.includes(userId)) return;
+      if (Date.now() - finished.endedAt > REMATCH_TTL_MS) return;
+      const oppId = finished.userIds[0] === userId ? finished.userIds[1] : finished.userIds[0];
+      presence.get(oppId)?.send('voice:signal', { matchId: p.matchId, data: p.data });
+    });
+
     socket.on('match:rematch', (p, ack) => {
       if (!p || typeof p.matchId !== 'string') {
         ack({ ok: false, error: 'Invalid match' });

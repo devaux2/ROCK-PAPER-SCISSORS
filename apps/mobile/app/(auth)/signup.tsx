@@ -4,6 +4,7 @@ import { Link } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { STARTING_COINS } from '@rps/shared';
 import { useAuthStore } from '../../src/stores/authStore';
+import { requestAppFullscreen } from '../../src/fullscreen';
 import { Button, Input, ErrorText, DisplayText, PressableScale, Tag } from '../../src/components/ui';
 import { theme } from '../../src/theme';
 
@@ -15,6 +16,7 @@ export default function Signup() {
   const [busy, setBusy] = useState(false);
 
   async function submit() {
+    requestAppFullscreen(); // user gesture — take the whole screen for the game
     setError(null);
     setBusy(true);
     try {

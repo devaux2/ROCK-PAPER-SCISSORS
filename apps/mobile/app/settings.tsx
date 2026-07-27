@@ -4,6 +4,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSettingsStore } from '../src/stores/settingsStore';
 import { playSound, syncMusic } from '../src/sound';
+import { applyVoiceVolume, stopVoice } from '../src/voice';
 import { SKINS } from '../src/skins';
 import { MOVES } from '@rps/shared';
 import { Card, DisplayText, PressableScale, Tag } from '../src/components/ui';
@@ -16,6 +17,10 @@ export default function Settings() {
   const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
   const musicEnabled = useSettingsStore((s) => s.musicEnabled);
   const setMusicEnabled = useSettingsStore((s) => s.setMusicEnabled);
+  const voiceEnabled = useSettingsStore((s) => s.voiceEnabled);
+  const setVoiceEnabled = useSettingsStore((s) => s.setVoiceEnabled);
+  const voiceVolume = useSettingsStore((s) => s.voiceVolume);
+  const setVoiceVolume = useSettingsStore((s) => s.setVoiceVolume);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: 20 }}>
@@ -45,6 +50,46 @@ export default function Settings() {
             onValueChange={(v) => {
               setSoundEnabled(v);
               if (v) playSound('win');
+            }}
+            trackColor={{ true: theme.accent, false: theme.panelBorder }}
+            thumbColor={theme.text}
+          />
+        </Card>
+        <Card style={styles.soundRow}>
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <Text style={styles.soundLabel}>Voice chat</Text>
+            <Text style={styles.hint}>Talk to your opponent during matches.</Text>
+            {voiceEnabled && (
+              <View style={styles.volRow}>
+                {([
+                  ['Quiet', 0.35],
+                  ['Normal', 0.7],
+                  ['Loud', 1],
+                ] as const).map(([label, vol]) => {
+                  const selected = Math.abs(voiceVolume - vol) < 0.01;
+                  return (
+                    <PressableScale
+                      key={label}
+                      onPress={() => {
+                        setVoiceVolume(vol);
+                        applyVoiceVolume(vol);
+                      }}
+                      style={[styles.volChip, selected && styles.volChipSelected]}
+                    >
+                      <Text style={[styles.volChipText, selected && { color: theme.accent }]}>
+                        {label}
+                      </Text>
+                    </PressableScale>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+          <Switch
+            value={voiceEnabled}
+            onValueChange={(v) => {
+              setVoiceEnabled(v);
+              if (!v) stopVoice();
             }}
             trackColor={{ true: theme.accent, false: theme.panelBorder }}
             thumbColor={theme.text}
@@ -120,6 +165,17 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   hint: { color: theme.textDim, marginBottom: 14 },
+  volRow: { flexDirection: 'row', gap: 8, marginTop: 2 },
+  volChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1.5,
+    borderColor: theme.panelBorder,
+    backgroundColor: theme.bgRaised,
+  },
+  volChipSelected: { borderColor: theme.accent },
+  volChipText: { color: theme.textDim, fontWeight: '800', fontSize: 12 },
   skinCard: {
     borderRadius: theme.radius.lg,
     borderWidth: 2,
